@@ -42,29 +42,6 @@ void FrameWindow(Window EventWindow) {
         ButtonPressMask | ButtonReleaseMask | ButtonMotionMask, GrabModeAsync, GrabModeAsync,
         None, None);
 
-    // Resize windows with alt + right button.
-    XGrabButton(
-        WM.RootDisplay,
-        Button3, Mod1Mask,
-        EventWindow, false,
-        ButtonPressMask | ButtonReleaseMask | ButtonMotionMask,
-        GrabModeAsync, GrabModeAsync,
-        None, None);
-
-    // Kill windows with alt + f4.
-    XGrabKey(
-        WM.RootDisplay,
-        XKeysymToKeycode(WM.RootDisplay, XK_F4), Mod1Mask,
-        EventWindow, false,
-        GrabModeAsync, GrabModeAsync);
-    
-    // Switch windows with alt + tab.
-    XGrabKey(
-        WM.RootDisplay,
-        XKeysymToKeycode(WM.RootDisplay, XK_Tab), Mod1Mask,
-        EventWindow, false,
-        GrabModeAsync, GrabModeAsync);
-
     std::cout << "LOG: Framed the window: " << EventWindow << ", in the frame: " << Frame << std::endl;
 
 }
@@ -112,8 +89,12 @@ int OnOtherWMDetected(Display* Display, XErrorEvent* Error) {
 void StartupWM() {
     XSetErrorHandler(&OnOtherWMDetected);
     XSelectInput(WM.RootDisplay, WM.RootWindow, SubstructureRedirectMask | SubstructureNotifyMask);
-    XSync(WM.RootDisplay, false);
 
+    // Grab Mod1 + Q for exiting the window manager
+    KeyCode exitKeycode = XKeysymToKeycode(WM.RootDisplay, XStringToKeysym("Q"));
+    XGrabKey(WM.RootDisplay, exitKeycode, Mod1Mask, WM.RootWindow, true, GrabModeAsync, GrabModeAsync);
+
+    XSync(WM.RootDisplay, false);
     XSetErrorHandler(&OnXError);
 }
 
@@ -127,6 +108,16 @@ void RunEventLoop() {
             case ConfigureRequest: { OnConfigureRequest(NextEvent.xconfigurerequest); break; }
             case MapRequest: { OnMapRequest(NextEvent.xmaprequest); break; }
             //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
+            case KeyPress: {
+                if (NextEvent.xkey.subwindow != None) {
+                    KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
+                    if (key == XStringToKeysym("Q") && (NextEvent.xkey.state & Mod1Mask)) {
+                        std::cout << "Exit key combination pressed. Exiting." << std::endl;
+                        return; // Exit the event loop
+                    }
+                }
+                break;
+            }
             default: {std::cerr << "Ignored Event: " << NextEvent.type << std::endl; break; }
         }
     }
