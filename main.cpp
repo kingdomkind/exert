@@ -3,49 +3,21 @@
 #include <cstring>
 #include <iostream>
 #include <algorithm>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
 #include <unistd.h>
+#include <xcb/xproto.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon.h>
 #include <unordered_map>
 
 struct WM {
-    Display* RootDisplay;
-    Window RootWindow;
-    std::unordered_map<Window, Window> Clients;
-
-    Atom WMProtocols;
-    Atom WMDeleteWindow;
+    xcb_connection_t* Connection;
+    xcb_screen_t* Screen;
 };
 
 WM WM;
-
-void FrameWindow(Window EventWindow) {
-    const uint BORDER_WIDTH = 3;
-    const ulong BORDER_COLOUR = 0xff0000;
-    const ulong BACKGROUND_COLOUR = 0xff0000;
-
-    XWindowAttributes WindowAttributes; // Get the attributes of the window
-    assert(XGetWindowAttributes(WM.RootDisplay, EventWindow, &WindowAttributes) != 0);
-    
-    // Create the frame
-    const Window Frame = XCreateSimpleWindow(
-        WM.RootDisplay, WM.RootWindow,
-        WindowAttributes.x, WindowAttributes.y, WindowAttributes.width, WindowAttributes.height,
-        BORDER_WIDTH, BORDER_COLOUR, BACKGROUND_COLOUR);
-
-    XSelectInput(WM.RootDisplay, Frame, SubstructureRedirectMask | SubstructureNotifyMask); // Choose registered events for the frame
-    XAddToSaveSet(WM.RootDisplay, EventWindow); // Add client to the save set, if X crashes, it can be restored
-    XReparentWindow(WM.RootDisplay, EventWindow, Frame, 0, 0); // Make EventWindow a child of Frame, Last 2 ints are offset of the window in the frame
-
-    XMapWindow(WM.RootDisplay, Frame); // Map Frame
-    WM.Clients[EventWindow] = Frame; // Save the Frame handle
-
-    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_c), Mod1Mask, EventWindow, false, GrabModeAsync, GrabModeAsync);
-
-    std::cout << "LOG: Framed the window: " << EventWindow << ", in the frame: " << Frame << std::endl;
-
-}
+/*
 
 void UnFrameWindow(Window EventWindow) {
     const Window Frame = WM.Clients[EventWindow];
@@ -59,13 +31,23 @@ void UnFrameWindow(Window EventWindow) {
 
 }
 
-void OnCreateNotify(const XCreateWindowEvent& NextEvent) {}
+void OnCreateNotify(const xcb_generic_event_t* NextEvent) {}
 
-void OnMapRequest(const XMapRequestEvent& NextEvent) {
-    FrameWindow(NextEvent.window);
-    XMapWindow(WM.RootDisplay, NextEvent.window);
+*/
+
+void OnMapRequest(const xcb_generic_event_t* NextEvent) {
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+    uint32_t Parameters[5] = {0, 0, 800, 800, 3};
+    uint32_t Masks[1] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+
+    xcb_change_window_attributes_checked(WM.Connection, Event->window, XCB_CW_EVENT_MASK, Masks);
+    xcb_configure_window(WM.Connection, Event->window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH,
+        Parameters);
+    xcb_map_window(WM.Connection, Event->window);
+    xcb_flush(WM.Connection);
 }
 
+/*
 void OnUnmapNotify(const XUnmapEvent& NextEvent) {
     if (WM.Clients.count(NextEvent.window) == 0) {
         std::cout << "LOG: Ignored unmap request on a window that isn't our client" << std::endl;
@@ -106,17 +88,15 @@ int OnOtherWMDetected(Display* Display, XErrorEvent* Error) {
     exit(EXIT_FAILURE);
     return 0;
 }
-
+*/
 void StartupWM() {
-    XSetErrorHandler(&OnOtherWMDetected);
-    XSelectInput(WM.RootDisplay, WM.RootWindow, SubstructureRedirectMask | SubstructureNotifyMask);
+    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)Masks);
+    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
 
-    // Grab Mod1 + Q for exiting the window manager
-    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_q), Mod1Mask, WM.RootWindow, false, GrabModeAsync, GrabModeAsync);
-    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_space), Mod1Mask, WM.RootWindow, false, GrabModeAsync, GrabModeAsync);
-
-    XSync(WM.RootDisplay, false);
-    XSetErrorHandler(&OnXError);
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    xcb_flush(WM.Connection);
 
     std::cout << "LOG: Starting up the WM" << std::endl;
 }
@@ -124,15 +104,16 @@ void StartupWM() {
 void RunEventLoop() {
     std::cout << "LOG: Running the event loop" << std::endl;
     while (true) {
-        XEvent NextEvent; XNextEvent(WM.RootDisplay, &NextEvent);
-        std::cout << "Recieved Event: " << NextEvent.type << std::endl;
+        xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
+        std::cout << "Recieved Event: " << NextEvent->response_type << std::endl;
 
-        switch (NextEvent.type) {
-            case CreateNotify: { OnCreateNotify(NextEvent.xcreatewindow); break; }
-            case ConfigureRequest: { OnConfigureRequest(NextEvent.xconfigurerequest); break; }
-            case MapRequest: { OnMapRequest(NextEvent.xmaprequest); break; }
-            case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
-            case KeyPress: {
+        switch (NextEvent->response_type & ~0x80) {
+            case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
+            /*case XCB_CREATE_NOTIFY: { OnCreateNotify(NextEvent); break; }
+            case XCB_CONFIGURE_REQUEST: { OnConfigureRequest(NextEvent); break; }
+            case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
+            case XCB_UNMAP_NOTIFY: { OnUnmapNotify(NextEvent); break; }
+            case XCB_KEY_PRESS: {
                 std::cout << "It's a keypress!" << std::endl;
                 KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
                 if (key == XK_q && (NextEvent.xkey.state & Mod1Mask)) {
@@ -168,26 +149,28 @@ void RunEventLoop() {
                     }
                 }
                 break;
-            }
-            default: {std::cerr << "Ignored Event: " << NextEvent.type << std::endl; break; }
+            } */
+            default: {std::cerr << "Ignored Event: " << NextEvent->response_type << std::endl; break; }
         }
     }
 }
 
-void InitDisplay(Display*& Display) {
-    Display = XOpenDisplay(nullptr);
-    if (Display == nullptr) {
-        std::cerr << "Failed to open the X display!" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "LOG: Initialised the display" << std::endl;
-}
-
 int main() {
-    InitDisplay(WM.RootDisplay);
-    WM.RootWindow = DefaultRootWindow(WM.RootDisplay);
-    WM.WMProtocols = XInternAtom(WM.RootDisplay, "WM_PROTOCOLS", false);
-    WM.WMDeleteWindow = XInternAtom(WM.RootDisplay, "WM_DELETE_WINDOW", false);
+    // Create a connection
+    WM.Connection = xcb_connect(nullptr, nullptr);
+    if (xcb_connection_has_error(WM.Connection)) {
+        std::cerr << "Failed to open the XCB connection!" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::cout << "LOG: Initialised the connection" << std::endl;
+
+    // Create a screen
+    WM.Screen = xcb_setup_roots_iterator(xcb_get_setup(WM.Connection)).data;
+    if (!WM.Screen) {
+        std::cerr << "Failed to get the XCB screen!" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::cout << "LOG: Initialised the screen" << std::endl;
 
     StartupWM();
     RunEventLoop();
