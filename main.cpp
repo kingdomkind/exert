@@ -42,6 +42,15 @@ void FrameWindow(Window EventWindow) {
 
 void OnCreateNotify(const XCreateWindowEvent& NextEvent) {}
 
+void OnDestroyNotify(const XDestroyWindowEvent& NextEvent) {
+    if (WM.Clients.count(NextEvent.event)) {
+        const Window Frame = WM.Clients[NextEvent.event];
+        XClearWindow(WM.RootDisplay, Frame);
+        XFreePixmap(WM.RootDisplay, Frame); // Free the frame pixmap
+        WM.Clients.erase(NextEvent.event);
+    }
+}
+
 void OnMapRequest(const XMapRequestEvent& NextEvent) {
     FrameWindow(NextEvent.window);
     XMapWindow(WM.RootDisplay, NextEvent.window);
@@ -99,6 +108,7 @@ void RunEventLoop() {
 
         switch (NextEvent.type) {
             case CreateNotify: { OnCreateNotify(NextEvent.xcreatewindow); break; }
+            case DestroyNotify: { OnDestroyNotify(NextEvent.xdestroywindow); break; }
             case ConfigureRequest: { OnConfigureRequest(NextEvent.xconfigurerequest); break; }
             case MapRequest: { OnMapRequest(NextEvent.xmaprequest); break; }
             //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
