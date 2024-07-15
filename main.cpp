@@ -34,14 +34,6 @@ void FrameWindow(Window EventWindow) {
     XMapWindow(WM.RootDisplay, Frame); // Map Frame
     WM.Clients[EventWindow] = Frame; // Save the Frame handle
 
-    // Inputs
-    XGrabButton(
-        WM.RootDisplay,
-        Button1, Mod1Mask,
-        EventWindow, false,
-        ButtonPressMask | ButtonReleaseMask | ButtonMotionMask, GrabModeAsync, GrabModeAsync,
-        None, None);
-
     std::cout << "LOG: Framed the window: " << EventWindow << ", in the frame: " << Frame << std::endl;
 
 }
