@@ -40,20 +40,28 @@ void FrameWindow(Window EventWindow) {
 
 }
 
-void OnCreateNotify(const XCreateWindowEvent& NextEvent) {}
-
-void OnDestroyNotify(const XDestroyWindowEvent& NextEvent) {
-    if (WM.Clients.count(NextEvent.event)) {
-        const Window Frame = WM.Clients[NextEvent.event];
-        XClearWindow(WM.RootDisplay, Frame);
-        XFreePixmap(WM.RootDisplay, Frame); // Free the frame pixmap
-        WM.Clients.erase(NextEvent.event);
-    }
+void UnFrameWindow(Window EventWindow) {
+    const Window Frame = WM.Clients[EventWindow];
+    XUnmapWindow(WM.RootDisplay, Frame);
+    XReparentWindow(WM.RootDisplay, EventWindow, WM.RootWindow, 0, 0);
+    XRemoveFromSaveSet(WM.RootDisplay, Frame);
+    WM.Clients.erase(EventWindow);
 }
+
+void OnCreateNotify(const XCreateWindowEvent& NextEvent) {}
 
 void OnMapRequest(const XMapRequestEvent& NextEvent) {
     FrameWindow(NextEvent.window);
     XMapWindow(WM.RootDisplay, NextEvent.window);
+}
+
+void OnUnmapRequest(const XUnmapEvent& NextEvent) {
+    if (WM.Clients.count(NextEvent.window) == 0) {
+        std::cout << "Ignored unmap request on a window that isn't our client" << std::endl;
+        return;
+    }
+
+    UnFrameWindow(NextEvent.window);
 }
 
 void OnConfigureRequest(const XConfigureRequestEvent& NextEvent) {
@@ -108,7 +116,6 @@ void RunEventLoop() {
 
         switch (NextEvent.type) {
             case CreateNotify: { OnCreateNotify(NextEvent.xcreatewindow); break; }
-            case DestroyNotify: { OnDestroyNotify(NextEvent.xdestroywindow); break; }
             case ConfigureRequest: { OnConfigureRequest(NextEvent.xconfigurerequest); break; }
             case MapRequest: { OnMapRequest(NextEvent.xmaprequest); break; }
             //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
