@@ -16,7 +16,7 @@ struct WM {
 WM WM;
 
 void FrameWindow(Window EventWindow) {
-    const uint BORDER_WIDTH = 0;
+    const uint BORDER_WIDTH = 3;
     const ulong BORDER_COLOUR = 0xff0000;
     const ulong BACKGROUND_COLOUR = 0xff0000;
 
