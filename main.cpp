@@ -83,7 +83,7 @@ void StartupWM() {
     XSelectInput(WM.RootDisplay, WM.RootWindow, SubstructureRedirectMask | SubstructureNotifyMask);
 
     // Grab Mod1 + Q for exiting the window manager
-    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_q), Mod1Mask, WM.RootWindow, false, GrabModeAsync, GrabModeAsync);
+    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_q), 0, WM.RootWindow, false, GrabModeAsync, GrabModeAsync);
 
     XSync(WM.RootDisplay, false);
     XSetErrorHandler(&OnXError);
