@@ -23,7 +23,7 @@ void FrameWindow(Window EventWindow) {
     
     // Create the frame
     const Window Frame = XCreateSimpleWindow(
-        WM.RootDisplay, EventWindow,
+        WM.RootDisplay, WM.RootWindow,
         WindowAttributes.x, WindowAttributes.y, WindowAttributes.width, WindowAttributes.height,
         BORDER_WIDTH, BORDER_COLOUR, BACKGROUND_COLOUR);
 
