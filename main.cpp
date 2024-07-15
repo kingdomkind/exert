@@ -60,11 +60,10 @@ void OnMapRequest(const XMapRequestEvent& NextEvent) {
 
 void OnUnmapNotify(const XUnmapEvent& NextEvent) {
     if (WM.Clients.count(NextEvent.window) == 0) {
-        std::cout << "Ignored unmap request on a window that isn't our client" << std::endl;
-        return;
+        std::cout << "LOG: Ignored unmap request on a window that isn't our client" << std::endl;
+    } else {
+        UnFrameWindow(NextEvent.window);
     }
-
-    UnFrameWindow(NextEvent.window);
 }
 
 void OnConfigureRequest(const XConfigureRequestEvent& NextEvent) {
@@ -110,9 +109,12 @@ void StartupWM() {
 
     XSync(WM.RootDisplay, false);
     XSetErrorHandler(&OnXError);
+
+    std::cout << "LOG: Starting up the WM" << std::endl;
 }
 
 void RunEventLoop() {
+    std::cout << "LOG: Running the event loop" << std::endl;
     while (true) {
         XEvent NextEvent; XNextEvent(WM.RootDisplay, &NextEvent);
         std::cout << "Recieved Event: " << NextEvent.type << std::endl;
@@ -148,6 +150,7 @@ void InitDisplay(Display*& Display) {
         std::cerr << "Failed to open the X display!" << std::endl;
         exit(EXIT_FAILURE);
     }
+    std::cout << "LOG: Initialised the display" << std::endl;
 }
 
 int main() {
