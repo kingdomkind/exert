@@ -101,12 +101,11 @@ void RunEventLoop() {
             //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
             case KeyPress: {
                 std::cout << "It's a keypress!" << std::endl;
-                    //KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
-                    //if (key == XStringToKeysym("Q") && (NextEvent.xkey.state & Mod1Mask)) {
-                        std::cout << "Exit key combination pressed. Exiting." << std::endl;
-                        return; // Exit the event loop
-                    //}
-                //}
+                KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
+                if (key == XK_q && (NextEvent.xkey.state & Mod1Mask)) {
+                    std::cout << "Exit key combination pressed. Exiting." << std::endl;
+                    return; // Exit the event loop
+                }
                 break;
             }
             default: {std::cerr << "Ignored Event: " << NextEvent.type << std::endl; break; }
