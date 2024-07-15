@@ -175,5 +175,7 @@ int main() {
     StartupWM();
     RunEventLoop();
 
+    while (true) {}
+
     return EXIT_SUCCESS;
 }
