@@ -90,20 +90,36 @@ int OnOtherWMDetected(Display* Display, XErrorEvent* Error) {
 }
 */
 void StartupWM() {
-        std::cout << "LOG: Initialised the screen 1" << std::endl;
-    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)Masks);
-        std::cout << "LOG: Initialised the screen 2" << std::endl;
+    std::cout << "LOG: Initialised the screen 1" << std::endl;
+
+    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+                           XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                           XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+                           XCB_EVENT_MASK_PROPERTY_CHANGE;
+
+    // Perform the change with the _checked function
+    xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
+
+    // Check for errors
+    xcb_generic_error_t* error = xcb_request_check(WM.Connection, cookie);
+    if (error) {
+        std::cerr << "Error: " << static_cast<int>(error->error_code) << std::endl;
+        free(error); // Don't forget to free the error
+        return;
+    }
+
+    std::cout << "LOG: Initialised the screen 2" << std::endl;
 
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
     std::cout << "LOG: Initialised the screen 3" << std::endl;
 
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     xcb_flush(WM.Connection);
 
     std::cout << "LOG: Starting up the WM" << std::endl;
 }
+
 
 void RunEventLoop() {
     std::cout << "LOG: Running the event loop" << std::endl;
