@@ -4,9 +4,10 @@
 set -e
 
 #> Compile & Run
+git pull &&
 cd build
 meson compile
 cd ..
 
-echo "foot & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
+echo "kitty & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
 startx
