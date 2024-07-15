@@ -141,11 +141,11 @@ void InitDisplay(Display*& Display) {
 }
 
 int main() {
-    //InitDisplay(WM.RootDisplay);
-    //WM.RootWindow = DefaultRootWindow(WM.RootDisplay);
+    InitDisplay(WM.RootDisplay);
+    WM.RootWindow = DefaultRootWindow(WM.RootDisplay);
 
-    //StartupWM();
-    //RunEventLoop();
+    StartupWM();
+    RunEventLoop();
 
     return EXIT_SUCCESS;
 }
