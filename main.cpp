@@ -109,13 +109,14 @@ void RunEventLoop() {
             case MapRequest: { OnMapRequest(NextEvent.xmaprequest); break; }
             //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
             case KeyPress: {
-                if (NextEvent.xkey.subwindow != None) {
-                    KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
-                    if (key == XStringToKeysym("Q") && (NextEvent.xkey.state & Mod1Mask)) {
+                std::cout << "It's a keypress!" << std::endl;
+                //if (NextEvent.xkey.subwindow != None) {
+                    //KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
+                    //if (key == XStringToKeysym("Q") && (NextEvent.xkey.state & Mod1Mask)) {
                         std::cout << "Exit key combination pressed. Exiting." << std::endl;
                         return; // Exit the event loop
-                    }
-                }
+                    //}
+                //}
                 break;
             }
             default: {std::cerr << "Ignored Event: " << NextEvent.type << std::endl; break; }
