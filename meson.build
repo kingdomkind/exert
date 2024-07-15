@@ -1,5 +1,5 @@
 project('exert', 'cpp')
-deps = [dependency('x11'), dependency('lua')]
+deps = [dependency('x11'), dependency('lua'), dependency('xcb)]
 
 executable(
   'exert',
