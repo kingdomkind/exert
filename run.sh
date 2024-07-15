@@ -8,5 +8,5 @@ cd build
 meson compile
 cd ..
 
-echo "firefox & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
+echo "xterm & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
 startx

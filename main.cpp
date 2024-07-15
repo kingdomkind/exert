@@ -110,6 +110,7 @@ void RunEventLoop() {
                 }
                 if (key == XK_space && (NextEvent.xkey.state & Mod1Mask)) {
                     if (fork() == 0) {
+                        std::cout << "showing rofi" << std::endl;
 			            execl("/bin/sh", "/bin/sh", "-c", "rofi -show run", (void *)NULL);
                     }
                 }
