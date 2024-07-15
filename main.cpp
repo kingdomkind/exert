@@ -1,6 +1,8 @@
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <algorithm>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <unistd.h>
@@ -11,6 +13,9 @@ struct WM {
     Display* RootDisplay;
     Window RootWindow;
     std::unordered_map<Window, Window> Clients;
+
+    Atom WMProtocols;
+    Atom WMDeleteWindow;
 };
 
 WM WM;
@@ -132,10 +137,31 @@ void RunEventLoop() {
                     std::cout << "Exit key combination pressed. Exiting." << std::endl;
                     return; // Exit event loop
                 }
-                if (key == XK_space && (NextEvent.xkey.state & Mod1Mask)) {
+                else if (key == XK_space && (NextEvent.xkey.state & Mod1Mask)) {
                     if (fork() == 0) {
                         std::cout << "showing rofi" << std::endl;
 			            execl("/bin/sh", "/bin/sh", "-c", "rofi -show run", (void *)NULL);
+                    }
+                }
+                else if (key == XK_c && (NextEvent.xkey.state & Mod1Mask)) {
+                    Atom* SupportedProtocols;
+                    int NumberOfSupportedProtocols;
+                    if (XGetWMProtocols(WM.RootDisplay, NextEvent.xkey.window, &SupportedProtocols, &NumberOfSupportedProtocols) &&
+                    (std::find(SupportedProtocols, SupportedProtocols + NumberOfSupportedProtocols, WM.WMDeleteWindow) != SupportedProtocols + NumberOfSupportedProtocols)) {
+                        std::cout << "LOG: Gently deleting window " << NextEvent.xkey.window << std::endl;;
+                        // 1. Construct message.
+                        XEvent Message;
+                        memset(&Message, 0, sizeof(Message));
+                        Message.xclient.type = ClientMessage;
+                        Message.xclient.message_type = WM.WMProtocols;
+                        Message.xclient.window = NextEvent.xkey.window;
+                        Message.xclient.format = 32;
+                        Message.xclient.data.l[0] = WM.WMDeleteWindow;
+                        // 2. Send message to window to be closed.
+                        XSendEvent(WM.RootDisplay, NextEvent.xkey.window, false, 0, &Message);
+                    } else {
+                        std::cout << "LOG: Killing window " << NextEvent.xkey.window << std::endl;
+                        XKillClient(WM.RootDisplay, NextEvent.xkey.window);
                     }
                 }
                 break;
@@ -157,6 +183,8 @@ void InitDisplay(Display*& Display) {
 int main() {
     InitDisplay(WM.RootDisplay);
     WM.RootWindow = DefaultRootWindow(WM.RootDisplay);
+    WM.WMProtocols = XInternAtom(WM.RootDisplay, "WM_PROTOCOLS", false);
+    WM.WMDeleteWindow = XInternAtom(WM.RootDisplay, "WM_DELETE_WINDOW", false);
 
     StartupWM();
     RunEventLoop();
