@@ -163,6 +163,7 @@ void RunEventLoop() {
                         XSendEvent(WM.RootDisplay, NextEvent.xkey.window, false, 0, &Message);
                     } else {
                         std::cout << "LOG: Killing window " << NextEvent.xkey.window << std::endl;
+                        XSetCloseDownMode(Display *,)
                         XKillClient(WM.RootDisplay, NextEvent.xkey.window);
                     }
                 }
