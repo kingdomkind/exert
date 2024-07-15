@@ -10,4 +10,4 @@ meson compile
 cd ..
 
 echo "kitty & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
-startx
+startx > log.txt

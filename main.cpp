@@ -58,7 +58,7 @@ void OnMapRequest(const XMapRequestEvent& NextEvent) {
     XMapWindow(WM.RootDisplay, NextEvent.window);
 }
 
-void OnUnmapRequest(const XUnmapEvent& NextEvent) {
+void OnUnmapNotify(const XUnmapEvent& NextEvent) {
     if (WM.Clients.count(NextEvent.window) == 0) {
         std::cout << "Ignored unmap request on a window that isn't our client" << std::endl;
         return;
@@ -121,7 +121,7 @@ void RunEventLoop() {
             case CreateNotify: { OnCreateNotify(NextEvent.xcreatewindow); break; }
             case ConfigureRequest: { OnConfigureRequest(NextEvent.xconfigurerequest); break; }
             case MapRequest: { OnMapRequest(NextEvent.xmaprequest); break; }
-            //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
+            case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
             case KeyPress: {
                 std::cout << "It's a keypress!" << std::endl;
                 KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
