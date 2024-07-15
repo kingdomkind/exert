@@ -83,7 +83,7 @@ void StartupWM() {
     XSelectInput(WM.RootDisplay, WM.RootWindow, SubstructureRedirectMask | SubstructureNotifyMask);
 
     // Grab Mod1 + Q for exiting the window manager
-    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_q), 0, WM.RootWindow, false, GrabModeAsync, GrabModeAsync);
+    XGrabKey(WM.RootDisplay, XKeysymToKeycode(WM.RootDisplay, XK_q), Mod1Mask, WM.RootWindow, false, GrabModeAsync, GrabModeAsync);
 
     XSync(WM.RootDisplay, false);
     XSetErrorHandler(&OnXError);
@@ -101,7 +101,6 @@ void RunEventLoop() {
             //case UnmapNotify: { OnUnmapNotify(NextEvent.xunmap); break; }
             case KeyPress: {
                 std::cout << "It's a keypress!" << std::endl;
-                //if (NextEvent.xkey.subwindow != None) {
                     //KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
                     //if (key == XStringToKeysym("Q") && (NextEvent.xkey.state & Mod1Mask)) {
                         std::cout << "Exit key combination pressed. Exiting." << std::endl;
