@@ -1,4 +1,4 @@
-local Castle = require("wm-castle")
+local Castle = require("attempt")
 
 local Binds = {
     {"Command", {"ALT", "R"}, "movetoworkspace 5"},
