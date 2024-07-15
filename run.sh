@@ -5,9 +5,9 @@ set -e
 
 #> Compile & Run
 git pull &&
-cd build
-meson compile
+cd build &&
+meson compile && 
 cd ..
 
-echo "xterm & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
+echo "xterm & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc &&
 startx > log.txt
