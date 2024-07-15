@@ -3,6 +3,8 @@
 #include <iostream>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#include <unistd.h>
+#include <xkbcommon/xkbcommon.h>
 #include <unordered_map>
 
 struct WM {
@@ -104,7 +106,12 @@ void RunEventLoop() {
                 KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
                 if (key == XK_q && (NextEvent.xkey.state & Mod1Mask)) {
                     std::cout << "Exit key combination pressed. Exiting." << std::endl;
-                    return; // Exit the event loop
+                    return; // Exit event loop
+                }
+                if (key == XK_space && (NextEvent.xkey.state & Mod1Mask)) {
+                    if (fork() == 0) {
+			            execl("/bin/sh", "/bin/sh", "-c", "rofi -show run", (void *)NULL);
+                    }
                 }
                 break;
             }
