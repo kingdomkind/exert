@@ -91,7 +91,7 @@ int OnOtherWMDetected(Display* Display, XErrorEvent* Error) {
 */
 void StartupWM() {
         std::cout << "LOG: Initialised the screen 1" << std::endl;
-    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)Masks);
         std::cout << "LOG: Initialised the screen 2" << std::endl;
 
