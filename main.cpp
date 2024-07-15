@@ -94,8 +94,8 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)Masks);
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
 
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    //xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    //xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
     xcb_flush(WM.Connection);
 
     std::cout << "LOG: Starting up the WM" << std::endl;
@@ -174,8 +174,5 @@ int main() {
 
     StartupWM();
     RunEventLoop();
-
-    while (true) {}
-
     return EXIT_SUCCESS;
 }
