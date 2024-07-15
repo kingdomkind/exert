@@ -90,12 +90,16 @@ int OnOtherWMDetected(Display* Display, XErrorEvent* Error) {
 }
 */
 void StartupWM() {
+        std::cout << "LOG: Initialised the screen 1" << std::endl;
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)Masks);
-    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
+        std::cout << "LOG: Initialised the screen 2" << std::endl;
 
-    //xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
-    //xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
+    std::cout << "LOG: Initialised the screen 3" << std::endl;
+
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
     xcb_flush(WM.Connection);
 
     std::cout << "LOG: Starting up the WM" << std::endl;
