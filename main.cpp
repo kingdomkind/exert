@@ -47,6 +47,7 @@ void UnFrameWindow(Window EventWindow) {
     XRemoveFromSaveSet(WM.RootDisplay, Frame);
     XDestroyWindow(WM.RootDisplay, Frame);
     WM.Clients.erase(EventWindow);
+    XSync(WM.RootDisplay, false); // Ensure synchronization
     std::cout << "LOG: Unframed the window: " << EventWindow << std::endl;
 
 }
