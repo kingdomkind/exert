@@ -37,58 +37,16 @@ void OnCreateNotify(const xcb_generic_event_t* NextEvent) {}
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    uint32_t Parameters[5] = {0, 0, 800, 800, 3};
-    uint32_t AttributesMasks = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    uint16_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    uint32_t Parameters[] = {0, 0, 800, 800, 3};
+    uint32_t AttributesMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+    uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
     xcb_change_window_attributes_checked(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &AttributesMasks);
-    xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, &Parameters);
+    xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
 }
 
-/*
-void OnUnmapNotify(const XUnmapEvent& NextEvent) {
-    if (WM.Clients.count(NextEvent.window) == 0) {
-        std::cout << "LOG: Ignored unmap request on a window that isn't our client" << std::endl;
-    } else {
-        UnFrameWindow(NextEvent.window);
-    }
-}
-
-void OnConfigureRequest(const XConfigureRequestEvent& NextEvent) {
-    // Mirror Changes
-    XWindowChanges Changes;
-    Changes.x = NextEvent.x;
-    Changes.y = NextEvent.y;
-    Changes.width = NextEvent.width;
-    Changes.height = NextEvent.height;
-    Changes.border_width = NextEvent.border_width;
-    Changes.sibling = NextEvent.above;
-    Changes.stack_mode = NextEvent.detail;
-
-    if (WM.Clients.count(NextEvent.window)) {
-        const Window Frame = WM.Clients[NextEvent.window];
-        XConfigureWindow(WM.RootDisplay, Frame, NextEvent.value_mask, &Changes);
-    }
-
-    // Send Request
-    XConfigureWindow(WM.RootDisplay, NextEvent.window, NextEvent.value_mask, &Changes);
-    std::cout << "Resize " << NextEvent.window << " to W:" << NextEvent.width << ", H:" << NextEvent.height << std::endl;
-}
-
-int OnXError(Display* Display, XErrorEvent* Error) {
-    std::cerr << "X ERROR: " << Error->error_code << std::endl;
-    return 0;
-}
-
-int OnOtherWMDetected(Display* Display, XErrorEvent* Error) {
-    assert(Error->error_code == BadAccess);
-    std::cerr << "Another window manager / X client is already running!" << std::endl;
-    exit(EXIT_FAILURE);
-    return 0;
-}
-*/
 void StartupWM() {
         std::cout << "LOG: Initialised the screen 1" << std::endl;
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
@@ -113,10 +71,7 @@ void RunEventLoop() {
 
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            /*case XCB_CREATE_NOTIFY: { OnCreateNotify(NextEvent); break; }
-            case XCB_CONFIGURE_REQUEST: { OnConfigureRequest(NextEvent); break; }
-            case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            case XCB_UNMAP_NOTIFY: { OnUnmapNotify(NextEvent); break; }
+            /*
             case XCB_KEY_PRESS: {
                 std::cout << "It's a keypress!" << std::endl;
                 KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
