@@ -25,7 +25,7 @@ void ExitWM() { /* THIS IS NOT BEING USED YET, WE ARE CURRENTLY JUST PKILLING */
 unsigned int KeysymToKeycode(const unsigned int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
-        std::cout << "Failed to get keycode for keysym: " << Keysym << std::endl;
+        std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -37,7 +37,7 @@ unsigned int KeysymToKeycode(const unsigned int Keysym) {
 unsigned int KeycodeToKeysym(const unsigned int Keycode) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
     if (!KeySym) {
-        std::cout << "Failed to get keycode for keycode: " << Keycode << std::endl;
+        std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
         exit(EXIT_FAILURE);
     }
     return KeySym;
@@ -52,6 +52,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &AttributesMasks);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, (void*)0xff0000); // Try and merge into one call
+    xcb_flush(WM.Connection);
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
@@ -106,7 +107,7 @@ int main() {
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(WM.Connection)) {
-        std::cout << "Failed to open the XCB connection!" << std::endl;
+        std::cerr << "Failed to open the XCB connection!" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "LOG: Initialised the connection" << std::endl;
@@ -114,14 +115,14 @@ int main() {
     // Create a screen
     WM.Screen = xcb_setup_roots_iterator(xcb_get_setup(WM.Connection)).data;
     if (!WM.Screen) {
-        std::cout << "Failed to get the XCB screen!" << std::endl;
+        std::cerr << "Failed to get the XCB screen!" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "LOG: Initialised the screen" << std::endl;
 
     WM.Keysyms = xcb_key_symbols_alloc(WM.Connection);
     if (!WM.Keysyms) {
-        std::cout << "ERROR: Failed to allocate key symbols" << std::endl;
+        std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "LOG: Initialised the key symbols" << std::endl;

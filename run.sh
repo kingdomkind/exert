@@ -12,4 +12,4 @@ cd ..
 
 echo "exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
 #echo "exec /home/pika/Software/exert/build/exert" > /home/pika/.xinitrc &&
-startx > log.txt
+startx &> log.txt
