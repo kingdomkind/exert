@@ -101,7 +101,6 @@ void RunEventLoop() {
 int main() {
     std::cout << "LOG: Test Keybinds" << std::endl;
 
-    /*
     Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
     Test.Command = "rofi -show run";
@@ -110,7 +109,7 @@ int main() {
     Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
     Test2.Command = "pkill exert";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2}); */
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2}); 
 
     for (const auto& pair : CachedData.Keybinds) {
         std::cout << "Keycode: " << pair.first << ", Modifier: " << pair.second.Modifier << ", Command: " << pair.second.Command << std::endl;

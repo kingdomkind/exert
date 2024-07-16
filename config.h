@@ -2,9 +2,10 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <xcb/xproto.h>
 
 struct Keybind {
-    unsigned int Modifier;
+    xcb_mod_mask_t Modifier;
     std::string Command;
 };
 
