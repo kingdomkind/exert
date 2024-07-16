@@ -1,5 +1,6 @@
 #include "config.h"
 #include <cassert>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -13,11 +14,16 @@ struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
+    xcb_window_t InputWindow;
 };
 
 WM WM;
 
 const uint32_t BORDER_WIDTH = 3;
+
+void KillActive() {
+    xcb_kill_client(WM.Connection, WM.InputWindow);
+}
 
 void ExitWM() { /* THIS IS NOT BEING USED YET, WE ARE CURRENTLY JUST PKILLING */
     free(WM.Keysyms);
@@ -73,11 +79,16 @@ void StartupWM() {
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
+    WM.InputWindow = Event->child;
     auto TargetRange = CachedData.Keybinds.equal_range(Event->detail);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
             if ((Event->state & Pair->second.Modifier) && Event->detail == Keycode) {
-                if (fork() == 0) {
+                if (Pair->second.Command == "killactive") {
+                    KillActive();
+                } else if (Pair->second.Command == "exitwm") {
+                    ExitWM();
+                } else if (fork() == 0) {
                     std::cout << "Executing: " << Pair->second.Command << std::endl;
                     execl("/bin/sh", "/bin/sh", "-c", Pair->second.Command.c_str(), (void *)NULL);
                 }
@@ -134,8 +145,13 @@ int main() {
 
     Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
-    Test2.Command = "pkill exert";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2}); 
+    Test2.Command = "exitwm";
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
+
+    Keybind Test3 = {};
+    Test3.Modifier = XCB_MOD_MASK_1;
+    Test3.Command = "killactive";
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
 
     StartupWM();
     RunEventLoop();
