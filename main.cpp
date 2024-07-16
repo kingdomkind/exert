@@ -99,12 +99,20 @@ void RunEventLoop() {
 }
 
 int main() {
-    std::cout << "LOG: Test Keybinds" << std::endl;
+    std::cout << "LOG: Pre-Test Keybinds" << std::endl;
 
     Keybind Test = {};
+        std::cout << "LOG: 1" << std::endl;
+
     Test.Modifier = XCB_MOD_MASK_1;
+        std::cout << "LOG: 2" << std::endl;
+
     Test.Command = "rofi -show run";
+        std::cout << "LOG: 3" << std::endl;
+
     CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
+        std::cout << "LOG: 4" << std::endl;
+
 
     Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
