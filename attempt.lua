@@ -7,11 +7,11 @@ wm-king command KEYBIND=[ALT.Q.L,wm-king\ command\ workspace\ 5][ALT.Q.R,wm-king
 ]]
 
 
-local Castle = {}
+local Attempt = {}
 local PipePath = "/tmp/wmking-runtime"
 
 ---@param Message string
-function Castle.WritePipe(Message) 
+function Attempt.WritePipe(Message) 
     local Pipe = io.open(PipePath, "w")
 
     if Pipe == nil then
@@ -24,7 +24,7 @@ function Castle.WritePipe(Message)
 end
 
 ---@return string
-function Castle.ReadPipe()
+function Attempt.ReadPipe()
     local Pipe = io.open(PipePath, "r")
 
     if Pipe == nil then
@@ -38,7 +38,7 @@ function Castle.ReadPipe()
 end
 
 ---@param Binds table
-function Castle.SetKeybinds(Binds)
+function Attempt.SetKeybinds(Binds)
     local Command = "KEYBIND="
     for Index, Keybind in ipairs(Binds) do
         local String = "["
@@ -64,7 +64,7 @@ function Castle.SetKeybinds(Binds)
     end
     print(Command)
 
-    Castle.WritePipe(Command)
+    Attempt.WritePipe(Command)
 end
 
-return Castle
+return Attempt

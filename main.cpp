@@ -1,14 +1,13 @@
+#include "config.h"
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <algorithm>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
-#include <unordered_map>
 
 struct WM {
     xcb_connection_t* Connection;
@@ -61,8 +60,12 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "LOG: Changed checked window attributes" << std::endl;
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
 
-    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_m), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_space), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    //xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_m), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    //xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_space), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
+    for (const auto &Pair : CachedData.Keybinds) {
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    }
 
     xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
 }
@@ -96,6 +99,17 @@ void RunEventLoop() {
 }
 
 int main() {
+
+    Keybind Test;
+    Test.Modifier = XCB_MOD_MASK_1;
+    Test.Command = "rofi -show run";
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
+
+    Keybind Test2;
+    Test2.Modifier = XCB_MOD_MASK_1;
+    Test2.Command = "pkill exert";
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
+
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(WM.Connection)) {

@@ -1,17 +1,16 @@
 #pragma once
-#include <set>
+#include <map>
 #include <string>
 #include <thread>
-#include <vector>
 
 struct Keybind {
-    std::set<unsigned int> Binds;
+    unsigned int Modifier;
     std::string Command;
-    bool AlreadyPressed = false;
 };
 
 struct Runtime {
-    std::vector<Keybind*> Keybinds;
+    // Key is the letter / number / whatever associated with the keybind
+    std::multimap<unsigned int, struct Keybind> Keybinds;
 };
 
 const std::string PIPE_PATH = "/tmp/wmking-runtime";
