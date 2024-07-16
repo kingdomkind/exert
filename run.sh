@@ -11,4 +11,4 @@ meson compile
 cd ..
 
 echo "exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
-startx | tee log.txt
+startx | tee log.txt | less
