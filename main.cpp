@@ -34,7 +34,15 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
 
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_SHIFT, XK_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
+    if (Keysyms) {
+        xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(Keysyms, XK_q);
+        if (Keycodes) {
+            xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_SHIFT, Keycodes[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+            free(Keycodes); // Free the keycodes array
+        }
+        xcb_key_symbols_free(Keysyms); // Free the keysyms structure
+    }
 
     xcb_flush(WM.Connection);
 
