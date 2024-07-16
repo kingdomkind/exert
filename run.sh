@@ -4,6 +4,7 @@
 set -e
 
 #> Compile & Run
+rm log.txt &&
 git pull &&
 cd build &&
 meson compile && 
