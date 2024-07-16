@@ -3,7 +3,7 @@ deps = [dependency('x11'), dependency('lua'), dependency('xcb'), dependency('xcb
 
 executable(
   'exert',
-  ['main.cpp', 'config.cpp', 'utils.cpp', 'keybinds.cpp'],
+  ['main.cpp', 'config.cpp', 'utils.cpp'],
   dependencies: deps,
   include_directories: '.',
 )
