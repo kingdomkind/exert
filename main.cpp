@@ -100,12 +100,12 @@ void RunEventLoop() {
 
 int main() {
 
-    Keybind Test;
+    Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
     Test.Command = "rofi -show run";
     CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
 
-    Keybind Test2;
+    Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
     Test2.Command = "pkill exert";
     CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
