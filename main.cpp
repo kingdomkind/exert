@@ -89,7 +89,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 
 void RunEventLoop() {
     std::cout << "LOG: Running the event loop" << std::endl;
-    if (fork() == 0) { std::cout << "showing xterm" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "xterm", (void *)NULL);}
+    if (fork() == 0) { std::cout << "showing kitty" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "kitty", (void *)NULL);}
 
     while (true) {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
