@@ -72,13 +72,27 @@ void StartupWM() {
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
-    xcb_keysym_t KeySym = KeycodeToKeysym(Event->detail);
+    xcb_keycode_t Keycode = Event->detail;
+    xcb_keysym_t KeySym = KeycodeToKeysym(Keycode);
     std::cout << "Pressed " << KeySym << std::endl;
-
+/*
     if ((Event->state & XCB_MOD_MASK_1) && (KeySym == XK_m)) {
         ExitWM();
     } else if ((Event->state & XCB_MOD_MASK_1) && (KeySym == XK_space)) {
         if (fork() == 0) { std::cout << "showing rofi" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "rofi -show run", (void *)NULL);}
+    } */
+
+    auto TargetRange = CachedData.Keybinds.equal_range(Event->detail);
+    if (TargetRange.first != TargetRange.second) {
+        for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
+            if ((Event->state & Pair->second.Modifier) && Event->detail == Keycode) {
+                if (fork() == 0) {
+                    std::cout << "Executing: " << Pair->second.Command << std::endl;
+                    execl("/bin/sh", "/bin/sh", "-c", Pair->second.Command.c_str(), (void *)NULL);
+                }
+                return;
+            }
+        }
     }
 }
 
