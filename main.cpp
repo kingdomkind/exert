@@ -47,7 +47,7 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    uint32_t Parameters[] = {0, 0, 1280, 800, 3};
+    uint32_t Parameters[] = {0, 0, 1280 - BORDER_WIDTH, 800 - BORDER_WIDTH, BORDER_WIDTHa};
     uint32_t AttributesMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE | 0xff0000};
     uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
