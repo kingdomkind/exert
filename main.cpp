@@ -45,16 +45,13 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    uint32_t Parameters[] = {0, 0, 800, 800, 15};
+    uint32_t Parameters[] = {0, 0, 800, 800, 3, 0xff0000};
     uint32_t AttributesMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH | XCB_CW_BORDER_PIXEL;
 
     xcb_change_window_attributes_checked(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &AttributesMasks);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
-
-  // Set the border color
-    uint32_t border_color = 0xff0000; // Red color in hexadecimal
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &border_color);
+    //xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, (void*)0xff0000);
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
