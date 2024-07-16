@@ -17,6 +17,26 @@ struct WM {
 
 WM WM;
 
+int KeysymToKeycode(int Keysym) {
+    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
+    if (!Keysyms) {
+        std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
+        exit(-1);
+    }
+
+    xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(Keysyms, Keysym);
+    if (!Keycodes) {
+        std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
+        xcb_key_symbols_free(Keysyms);
+        exit(-1);
+    }
+
+    xcb_keycode_t PrimaryKeycode = Keycodes[0]; // The first keycode is the main one
+    free(Keycodes);
+    xcb_key_symbols_free(Keysyms);
+    return PrimaryKeycode;
+}
+
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
     uint32_t Parameters[] = {0, 0, 800, 800, 3};
@@ -34,15 +54,7 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
 
-    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
-    if (Keysyms) {
-        xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(Keysyms, XK_q);
-        if (Keycodes) {
-            xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_SHIFT, Keycodes[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-            free(Keycodes); // Free the keycodes array
-        }
-        xcb_key_symbols_free(Keysyms); // Free the keysyms structure
-    }
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_SHIFT, KeysymToKeycode(XK_q), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
     xcb_flush(WM.Connection);
 
