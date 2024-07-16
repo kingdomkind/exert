@@ -1,0 +1,116 @@
+LOG: Initialised the connection
+LOG: Initialised the screen
+LOG: Initialised the screen 1
+LOG: Initialised the screen 2
+LOG: Initialised the screen 3
+LOG: Starting up the WM
+LOG: Running the event loop
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: "
+Recieved Event: "
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: ¡
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: ¡
+Recieved Event: 
+Recieved Event: 
+Recieved Event: ’
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: ¡
+Recieved Event: 
+Recieved Event: 
+Recieved Event: ’
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: ’
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+
+Recieved Event: 	
+Recieved Event: 
+Recieved Event: ¡
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 
+Recieved Event: 

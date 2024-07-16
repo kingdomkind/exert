@@ -10,4 +10,5 @@ meson compile &&
 cd ..
 
 echo "xterm & exec /home/pika/exert/build/exert" > /home/pika/.xinitrc &&
+#echo "xterm & exec /home/pika/Software/exert/build/exert" > /home/pika/.xinitrc &&
 startx > log.txt

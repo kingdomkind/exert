@@ -7,8 +7,7 @@
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
-#include <xkbcommon/xkbcommon-keysyms.h>
-#include <xkbcommon/xkbcommon.h>
+#include <X11/keysym.h>
 #include <unordered_map>
 
 struct WM {
@@ -48,19 +47,23 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 }
 
 void StartupWM() {
-        std::cout << "LOG: Initialised the screen 1" << std::endl;
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
-        std::cout << "LOG: Initialised the screen 2" << std::endl;
-
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
-    std::cout << "LOG: Initialised the screen 3" << std::endl;
 
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XKB_KEY_space, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC );
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XK_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
     xcb_flush(WM.Connection);
 
     std::cout << "LOG: Starting up the WM" << std::endl;
+}
+
+void OnKeyPress(const xcb_generic_event_t* NextEvent) {
+    xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
+    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
+    xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(Keysyms, Event->detail, 0);
+    xcb_key_symbols_free(Keysyms);
+    std::cout << "Pressed " << KeySym << std::endl;
 }
 
 void RunEventLoop() {
@@ -71,6 +74,7 @@ void RunEventLoop() {
 
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
+            case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             /*
             case XCB_KEY_PRESS: {
                 std::cout << "It's a keypress!" << std::endl;
