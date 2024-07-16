@@ -110,6 +110,10 @@ int main() {
     Test2.Command = "pkill exert";
     CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
 
+        for (const auto& pair : CachedData.Keybinds) {
+        std::cout << "Keycode: " << pair.first << ", Modifier: " << pair.second.Modifier << ", Command: " << pair.second.Command << std::endl;
+    }
+
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(WM.Connection)) {
