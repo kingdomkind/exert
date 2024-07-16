@@ -1,5 +1,5 @@
 project('exert', 'cpp')
-deps = [dependency('x11'), dependency('lua'), dependency('xcb')]
+deps = [dependency('x11'), dependency('lua'), dependency('xcb'), dependency['xcb-keysyms']]
 
 executable(
   'exert',
