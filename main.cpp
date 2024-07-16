@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <ostream>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
@@ -26,7 +27,7 @@ void KillActive() {
     xcb_kill_client(WM.Connection, WM.InputWindow);
 }
 
-void ExitWM() { /* THIS IS NOT BEING USED YET, WE ARE CURRENTLY JUST PKILLING */
+void ExitWM() {
     free(WM.Keysyms);
     xcb_disconnect(WM.Connection);
 }
@@ -81,6 +82,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
     WM.InputWindow = Event->child;
+    std::cout << "Set Window to " << WM.InputWindow << " " << Event->child << std::endl;
     auto TargetRange = CachedData.Keybinds.equal_range(Event->detail);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
