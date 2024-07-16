@@ -25,7 +25,7 @@ void ExitWM() {
 unsigned int KeysymToKeycode(const unsigned int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
-        std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
+        std::cout << "Failed to get keycode for keysym: " << Keysym << std::endl;
         exit(EXIT_FAILURE);
     }
 
