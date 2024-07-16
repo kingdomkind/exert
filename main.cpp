@@ -102,8 +102,8 @@ int main() {
     }
     std::cout << "LOG: Initialised the screen" << std::endl;
 
-    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
-    if (!Keysyms) {
+    WM.Keysyms = xcb_key_symbols_alloc(WM.Connection);
+    if (!WM.Keysyms) {
         std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
         return EXIT_FAILURE;
     }
@@ -112,7 +112,7 @@ int main() {
     StartupWM();
     RunEventLoop();
 
-    //free(WM.Keysyms);
+    free(WM.Keysyms);
 
     return EXIT_SUCCESS;
 }
