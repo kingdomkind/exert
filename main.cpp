@@ -64,6 +64,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(Keysyms, Event->detail, 0);
     xcb_key_symbols_free(Keysyms);
     std::cout << "Pressed " << KeySym << std::endl;
+    xcb_disconnect(WM.Connection);
 }
 
 void RunEventLoop() {
