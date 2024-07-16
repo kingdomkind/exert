@@ -33,7 +33,7 @@ struct WM {
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     xcb_window_t InputWindow;
-    //std::vector<std::unique_ptr<Node>> Tree;
+    std::set<std::unique_ptr<Node>> Tree;
     std::set<xcb_window_t> VisibleWindows;
 };
 
@@ -195,8 +195,8 @@ int main() {
     Test3.Command = "killactive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
 
-    //auto DefaultNode = std::make_unique<Node>();
-    //WM.Tree.push_back(DefaultNode);
+    auto DefaultNode = std::make_unique<Node>();
+    WM.Tree.insert(DefaultNode);
 
     StartupWM();
     RunEventLoop();
