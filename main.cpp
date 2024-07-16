@@ -13,28 +13,30 @@
 struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
+    xcb_key_symbols_t* Keysyms;
 };
 
 WM WM;
 
-int KeysymToKeycode(int Keysym) {
-    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
-    if (!Keysyms) {
-        std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
-        exit(-1);
-    }
-
-    xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(Keysyms, Keysym);
+xcb_keycode_t KeysymToKeycode(int Keysym) {
+    xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
         std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
-        xcb_key_symbols_free(Keysyms);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     xcb_keycode_t PrimaryKeycode = Keycodes[0]; // The first keycode is the main one
     free(Keycodes);
-    xcb_key_symbols_free(Keysyms);
     return PrimaryKeycode;
+}
+
+xcb_keysym_t KeycodeToKeysym(int Keycode) {
+    xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
+    if (!KeySym) {
+        std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return KeySym;
 }
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
@@ -63,11 +65,12 @@ void StartupWM() {
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
-    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
-    xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(Keysyms, Event->detail, 0);
-    xcb_key_symbols_free(Keysyms);
+    xcb_keysym_t KeySym = KeycodeToKeysym(Event->detail);
     std::cout << "Pressed " << KeySym << std::endl;
-    xcb_disconnect(WM.Connection);
+
+    if ((Event->state & XCB_MOD_MASK_1) && (KeySym == XK_q)) {
+        xcb_disconnect(WM.Connection);
+    }
 }
 
 void RunEventLoop() {
@@ -101,7 +104,17 @@ int main() {
     }
     std::cout << "LOG: Initialised the screen" << std::endl;
 
+    xcb_key_symbols_t* Keysyms = xcb_key_symbols_alloc(WM.Connection);
+    if (!Keysyms) {
+        std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::cout << "LOG: Initialised the key symbols" << std::endl;
+
     StartupWM();
     RunEventLoop();
+
+    free(WM.Keysyms);
+
     return EXIT_SUCCESS;
 }
