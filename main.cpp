@@ -53,14 +53,12 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
 void StartupWM() {
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
-    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
+    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "LOG: Changed checked window attributes" << std::endl;
+    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
 
     xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_q), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
-    xcb_flush(WM.Connection);
-
-    std::cout << "LOG: Starting up the WM" << std::endl;
+    xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
 }
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
