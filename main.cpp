@@ -18,6 +18,11 @@ struct WM {
 
 WM WM;
 
+void ExitWM() {
+    free(WM.Keysyms);
+    xcb_disconnect(WM.Connection);
+}
+
 xcb_keycode_t KeysymToKeycode(int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
@@ -66,13 +71,17 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_keysym_t KeySym = KeycodeToKeysym(Event->detail);
     std::cout << "Pressed " << KeySym << std::endl;
 
-    if ((Event->state & XCB_MOD_MASK_1) && (KeySym == XK_q)) {
-        xcb_disconnect(WM.Connection);
+    if ((Event->state & XCB_MOD_MASK_1) && (KeySym == XK_m)) {
+        ExitWM();
+    } else if ((Event->state & XCB_MOD_MASK_1) && (KeySym == XK_space)) {
+        if (fork() == 0) { std::cout << "showing rofi" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "rofi -show run", (void *)NULL);}
     }
 }
 
 void RunEventLoop() {
     std::cout << "LOG: Running the event loop" << std::endl;
+    if (fork() == 0) { std::cout << "showing xterm" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "xterm", (void *)NULL);}
+
     while (true) {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
         std::cout << "Recieved Event: " << NextEvent->response_type << std::endl;
@@ -111,8 +120,6 @@ int main() {
 
     StartupWM();
     RunEventLoop();
-
-    free(WM.Keysyms);
-
+    
     return EXIT_SUCCESS;
 }
