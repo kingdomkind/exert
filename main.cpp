@@ -99,6 +99,7 @@ void RunEventLoop() {
 }
 
 int main() {
+    std::cout << "LOG: Pre Test Keybinds" << std::endl;
 
     Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
