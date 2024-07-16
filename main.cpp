@@ -16,23 +16,6 @@ struct WM {
 };
 
 WM WM;
-/*
-
-void UnFrameWindow(Window EventWindow) {
-    const Window Frame = WM.Clients[EventWindow];
-    XUnmapWindow(WM.RootDisplay, Frame);
-    XReparentWindow(WM.RootDisplay, EventWindow, WM.RootWindow, 0, 0);
-    XRemoveFromSaveSet(WM.RootDisplay, Frame);
-    XDestroyWindow(WM.RootDisplay, Frame);
-    WM.Clients.erase(EventWindow);
-    XSync(WM.RootDisplay, false); // Ensure synchronization
-    std::cout << "LOG: Unframed the window: " << EventWindow << std::endl;
-
-}
-
-void OnCreateNotify(const xcb_generic_event_t* NextEvent) {}
-
-*/
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
@@ -51,7 +34,7 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
 
-    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, XK_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_SHIFT, XK_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
     xcb_flush(WM.Connection);
 
