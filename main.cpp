@@ -62,6 +62,8 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL, &AttributesMasks); // Before this was checked, test if needed
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
 
+    std::cout << "Mapped " << Event->window << std::endl; 
+
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
 }
@@ -72,7 +74,7 @@ void StartupWM() {
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : CachedData.Keybinds) {
-        xcb_grab_key(WM.Connection, 1, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
     xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
