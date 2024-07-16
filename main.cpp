@@ -23,7 +23,7 @@ void ExitWM() {
     xcb_disconnect(WM.Connection);
 }
 
-int  KeysymToKeycode(int Keysym) {
+unsigned int KeysymToKeycode(const unsigned int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
         std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
@@ -35,7 +35,7 @@ int  KeysymToKeycode(int Keysym) {
     return PrimaryKeycode;
 }
 
-int KeycodeToKeysym(int Keycode) {
+unsigned int KeycodeToKeysym(const unsigned int Keycode) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
     if (!KeySym) {
         std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
