@@ -112,7 +112,7 @@ int main() {
     StartupWM();
     RunEventLoop();
 
-    free(WM.Keysyms);
+    //free(WM.Keysyms);
 
     return EXIT_SUCCESS;
 }
