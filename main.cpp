@@ -24,7 +24,7 @@ const uint32_t BORDER_WIDTH = 3;
 
 void KillActive() {
     std::cout << "Attempting to kill window: " << WM.InputWindow << std::endl;
-    xcb_kill_client_checked(WM.Connection, WM.InputWindow);
+    xcb_kill_client(WM.Connection, WM.InputWindow);
 }
 
 void ExitWM() {
@@ -72,7 +72,7 @@ void StartupWM() {
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : CachedData.Keybinds) {
-        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_key(WM.Connection, 1, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
     xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
