@@ -52,10 +52,9 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_change_window_attributes_checked(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &AttributesMasks);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
     
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, (void*)0xff0000); // Try and merge into one call
-      // Set the border color
-    //uint32_t border_color = 0xff0000; // Red color in hexadecimal
-    //xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &border_color);
+    //xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, (void*)0xff0000); // Try and merge into one call
+    uint32_t border_color = 0xff0000; // Red color in hexadecimal
+    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &border_color);
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
