@@ -37,7 +37,7 @@ unsigned int KeysymToKeycode(const unsigned int Keysym) {
 unsigned int KeycodeToKeysym(const unsigned int Keycode) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
     if (!KeySym) {
-        std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
+        std::cout << "Failed to get keycode for keycode: " << Keycode << std::endl;
         exit(EXIT_FAILURE);
     }
     return KeySym;
@@ -93,39 +93,16 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            default: {std::cerr << "Ignored Event: " << NextEvent->response_type << std::endl; break; }
+            default: {std::cout << "Ignored Event: " << NextEvent->response_type << std::endl; break; }
         }
     }
 }
 
 int main() {
-    std::cout << "LOG: Pre-Test Keybinds" << std::endl;
-    Keybind Test = {};
-    std::cout << "LOG: 1" << std::endl;
-    Test.Modifier = XCB_MOD_MASK_1;
-    std::cout << "LOG: 2" << std::endl;
-    Test.Command = "rofi -show run";
-    std::cout << "LOG: 3" << std::endl;
-    std::cout << KeysymToKeycode(XK_space) << std::endl;
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
-    std::cout << "LOG: 4" << std::endl;
-
-
-    Keybind Test2 = {};
-    Test2.Modifier = XCB_MOD_MASK_1;
-    Test2.Command = "pkill exert";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2}); 
-
-    for (const auto& pair : CachedData.Keybinds) {
-        std::cout << "Keycode: " << pair.first << ", Modifier: " << pair.second.Modifier << ", Command: " << pair.second.Command << std::endl;
-    }
-    std::cout << "LOG: Test Keybinds" << std::endl;
-
-
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(WM.Connection)) {
-        std::cerr << "Failed to open the XCB connection!" << std::endl;
+        std::cout << "Failed to open the XCB connection!" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "LOG: Initialised the connection" << std::endl;
@@ -133,17 +110,27 @@ int main() {
     // Create a screen
     WM.Screen = xcb_setup_roots_iterator(xcb_get_setup(WM.Connection)).data;
     if (!WM.Screen) {
-        std::cerr << "Failed to get the XCB screen!" << std::endl;
+        std::cout << "Failed to get the XCB screen!" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "LOG: Initialised the screen" << std::endl;
 
     WM.Keysyms = xcb_key_symbols_alloc(WM.Connection);
     if (!WM.Keysyms) {
-        std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
+        std::cout << "ERROR: Failed to allocate key symbols" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "LOG: Initialised the key symbols" << std::endl;
+
+    Keybind Test = {};
+    Test.Modifier = XCB_MOD_MASK_1;
+    Test.Command = "rofi -show run";
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
+
+    Keybind Test2 = {};
+    Test2.Modifier = XCB_MOD_MASK_1;
+    Test2.Command = "pkill exert";
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2}); 
 
     StartupWM();
     RunEventLoop();
