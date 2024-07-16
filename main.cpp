@@ -51,7 +51,7 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks);
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); // Reset to known state
 
-    xcb_grab_key(WM.Connection, 1, WM.Screen->root, XCB_MOD_MASK_1, XK_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, XK_q, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
     xcb_flush(WM.Connection);
 
@@ -76,44 +76,6 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            /*
-            case XCB_KEY_PRESS: {
-                std::cout << "It's a keypress!" << std::endl;
-                KeySym key = XKeycodeToKeysym(WM.RootDisplay, NextEvent.xkey.keycode, 0);
-                if (key == XK_q && (NextEvent.xkey.state & Mod1Mask)) {
-                    std::cout << "Exit key combination pressed. Exiting." << std::endl;
-                    return; // Exit event loop
-                }
-                else if (key == XK_space && (NextEvent.xkey.state & Mod1Mask)) {
-                    if (fork() == 0) {
-                        std::cout << "showing rofi" << std::endl;
-			            execl("/bin/sh", "/bin/sh", "-c", "rofi -show run", (void *)NULL);
-                    }
-                }
-                else if (key == XK_c && (NextEvent.xkey.state & Mod1Mask)) {
-                    Atom* SupportedProtocols;
-                    int NumberOfSupportedProtocols;
-                    if (XGetWMProtocols(WM.RootDisplay, NextEvent.xkey.window, &SupportedProtocols, &NumberOfSupportedProtocols) &&
-                    (std::find(SupportedProtocols, SupportedProtocols + NumberOfSupportedProtocols, WM.WMDeleteWindow) != SupportedProtocols + NumberOfSupportedProtocols)) {
-                        std::cout << "LOG: Gently deleting window " << NextEvent.xkey.window << std::endl;;
-                        // 1. Construct message.
-                        XEvent Message;
-                        memset(&Message, 0, sizeof(Message));
-                        Message.xclient.type = ClientMessage;
-                        Message.xclient.message_type = WM.WMProtocols;
-                        Message.xclient.window = NextEvent.xkey.window;
-                        Message.xclient.format = 32;
-                        Message.xclient.data.l[0] = WM.WMDeleteWindow;
-                        // 2. Send message to window to be closed.
-                        XSendEvent(WM.RootDisplay, NextEvent.xkey.window, false, 0, &Message);
-                    } else {
-                        std::cout << "LOG: Killing window " << NextEvent.xkey.window << std::endl;
-                        XSetCloseDownMode(Display *,)
-                        XKillClient(WM.RootDisplay, NextEvent.xkey.window);
-                    }
-                }
-                break;
-            } */
             default: {std::cerr << "Ignored Event: " << NextEvent->response_type << std::endl; break; }
         }
     }
