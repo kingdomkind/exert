@@ -103,15 +103,19 @@ void StartupWM() {
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    WM.VisibleWindows.erase(Event->window);
-    std::cout << "ERASED! (Unmap)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
+    if (WM.VisibleWindows.count(Event->window)) {
+        WM.VisibleWindows.erase(Event->window);
+        std::cout << "ERASED! (Unmap)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
+    }
 }
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
-    KillWindow(Event->window);
-    WM.VisibleWindows.erase(Event->window);
-    std::cout << "ERASED! (Destroy)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
+    if (WM.VisibleWindows.count(Event->window)) {
+        //KillWindow(Event->window);
+        WM.VisibleWindows.erase(Event->window);
+        std::cout << "ERASED! (Destroy)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
+    }
 }
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
