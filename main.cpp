@@ -109,12 +109,10 @@ void RunEventLoop() {
 
     while (true) {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
-        std::cout << "Recieved Event: " << NextEvent->response_type << std::endl;
-
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            default: {std::cout << "Ignored Event: " << NextEvent->response_type << std::endl; break; }
+            default: { break; }
         }
     }
 }
