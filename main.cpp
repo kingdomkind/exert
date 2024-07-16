@@ -24,8 +24,8 @@ const uint32_t BORDER_WIDTH = 3;
 
 void KillActive() {
     std::cout << "Attempting to kill window: " << WM.InputWindow << std::endl;
-    xcb_kill_client_checked(WM.Connection, WM.InputWindow);
-    //xcb_flush(WM.Connection);
+    xcb_kill_client(WM.Connection, WM.InputWindow);
+    xcb_flush(WM.Connection);
 }
 
 void ExitWM() {
