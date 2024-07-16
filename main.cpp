@@ -113,6 +113,8 @@ int main() {
         for (const auto& pair : CachedData.Keybinds) {
         std::cout << "Keycode: " << pair.first << ", Modifier: " << pair.second.Modifier << ", Command: " << pair.second.Command << std::endl;
     }
+    std::cout << "LOG: Test Keybinds" << std::endl;
+
 
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
