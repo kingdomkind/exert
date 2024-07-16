@@ -112,7 +112,6 @@ void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
     if (WM.VisibleWindows.count(Event->window)) {
-        //KillWindow(Event->window);
         WM.VisibleWindows.erase(Event->window);
         std::cout << "ERASED! (Destroy)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
     }
@@ -122,7 +121,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
     WM.InputWindow = Event->child;
-    std::cout << "Set Window to " << WM.InputWindow << " " << Event->child << std::endl;
+    std::cout << "Set Input Window to " << WM.InputWindow << std::endl;
     auto TargetRange = Runtime.Keybinds.equal_range(Event->detail);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
