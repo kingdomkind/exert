@@ -23,7 +23,7 @@ void ExitWM() {
     xcb_disconnect(WM.Connection);
 }
 
-xcb_keycode_t KeysymToKeycode(int Keysym) {
+int  KeysymToKeycode(int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
         std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
@@ -35,7 +35,7 @@ xcb_keycode_t KeysymToKeycode(int Keysym) {
     return PrimaryKeycode;
 }
 
-xcb_keysym_t KeycodeToKeysym(int Keycode) {
+int KeycodeToKeysym(int Keycode) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
     if (!KeySym) {
         std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
@@ -61,7 +61,8 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "LOG: Changed checked window attributes" << std::endl;
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
 
-    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_q), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_m), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_space), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
     xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
 }

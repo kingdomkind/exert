@@ -1,4 +1,4 @@
-local Castle = require("attempt")
+local Castle = require("effort")
 
 local Binds = {
     {"Command", {"ALT", "R"}, "movetoworkspace 5"},
