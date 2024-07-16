@@ -12,4 +12,3 @@ cd ..
 
 echo "exec /home/pika/exert/build/exert" > /home/pika/.xinitrc
 startx | tee log.txt
-cat log.txt
