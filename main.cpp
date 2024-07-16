@@ -17,7 +17,7 @@ struct WM {
 
 WM WM;
 
-void ExitWM() {
+void ExitWM() { /* THIS IS NOT BEING USED YET, WE ARE CURRENTLY JUST PKILLING */
     free(WM.Keysyms);
     xcb_disconnect(WM.Connection);
 }
@@ -45,7 +45,7 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    uint32_t Parameters[] = {0, 0, 800, 800, 3};
+    uint32_t Parameters[] = {0, 0, 800, 800, 15};
     uint32_t AttributesMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
