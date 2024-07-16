@@ -16,7 +16,7 @@ struct Runtime {
 
 const std::string PIPE_PATH = "/tmp/wmking-runtime";
 static std::thread ListeningThread;
-static Runtime CachedData;
+static Runtime Runtime;
 
 void WritePipe(std::string Message);
 std::string ReadPipe();

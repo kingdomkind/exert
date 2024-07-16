@@ -4,27 +4,46 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <ostream>
+#include <set>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 
+enum Split {
+    VERTICAL,
+    HORIZONTAL,
+    NONE,
+};
+
+struct Node {
+    Split Direction = NONE;
+    // unsigned int Ratio; // eg. 0.4 means the left window is smaller
+    
+    std::unique_ptr<Node> Parent = nullptr;
+    std::unique_ptr<Node> Left = nullptr;
+    std::unique_ptr<Node> Right = nullptr;
+};
+
 struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     xcb_window_t InputWindow;
+    //std::vector<std::unique_ptr<Node>> Tree;
+    std::set<xcb_window_t> VisibleWindows;
 };
 
 WM WM;
 
 const uint32_t BORDER_WIDTH = 3;
 
-void KillActive() {
-    std::cout << "Attempting to kill window: " << WM.InputWindow << std::endl;
-    xcb_kill_client(WM.Connection, WM.InputWindow);
+void KillWindow(xcb_window_t Window) {
+    std::cout << "Attempting to kill window: " << Window << std::endl;
+    xcb_kill_client(WM.Connection, Window);
     xcb_flush(WM.Connection);
 }
 
@@ -63,7 +82,8 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL, &AttributesMasks); // Before this was checked, test if needed
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
 
-    std::cout << "Mapped " << Event->window << std::endl; 
+    WM.VisibleWindows.insert(Event->window);
+    std::cout << "ADDED!" << std::endl; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
@@ -74,11 +94,24 @@ void StartupWM() {
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "LOG: Changed checked window attributes" << std::endl;
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
 
-    for (const auto &Pair : CachedData.Keybinds) {
+    for (const auto &Pair : Runtime.Keybinds) {
         xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
     xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
+}
+
+void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+    WM.VisibleWindows.erase(Event->window);
+    std::cout << "ERASED!" << std::endl; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
+}
+
+void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
+    KillWindow(Event->window);
+    WM.VisibleWindows.erase(Event->window);
+    std::cout << "ERASED!" << std::endl; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
 }
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
@@ -86,12 +119,12 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_keycode_t Keycode = Event->detail;
     WM.InputWindow = Event->child;
     std::cout << "Set Window to " << WM.InputWindow << " " << Event->child << std::endl;
-    auto TargetRange = CachedData.Keybinds.equal_range(Event->detail);
+    auto TargetRange = Runtime.Keybinds.equal_range(Event->detail);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
             if ((Event->state & Pair->second.Modifier) && Event->detail == Keycode) {
                 if (Pair->second.Command == "killactive") {
-                    KillActive();
+                    KillWindow(WM.InputWindow);
                 } else if (Pair->second.Command == "exitwm") {
                     ExitWM();
                 } else if (fork() == 0) {
@@ -113,6 +146,8 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
+            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
+            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             default: { break; }
         }
     }
@@ -145,17 +180,20 @@ int main() {
     Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
     Test.Command = "rofi -show run";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_space), Test});
 
     Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
     Test2.Command = "exitwm";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
 
     Keybind Test3 = {};
     Test3.Modifier = XCB_MOD_MASK_1;
     Test3.Command = "killactive";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
+
+    //auto DefaultNode = std::make_unique<Node>();
+    //WM.Tree.push_back(DefaultNode);
 
     StartupWM();
     RunEventLoop();
