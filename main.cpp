@@ -64,7 +64,7 @@ void StartupWM() {
     //xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_1, KeysymToKeycode(XK_space), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
     for (const auto &Pair : CachedData.Keybinds) {
-        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second->Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
     xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
@@ -99,20 +99,21 @@ void RunEventLoop() {
 }
 
 int main() {
-    std::cout << "LOG: Pre Test Keybinds" << std::endl;
+    std::cout << "LOG: Test Keybinds" << std::endl;
 
-    Keybind Test;
+    /*
+    Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
     Test.Command = "rofi -show run";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_space), &Test});
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_space), Test});
 
-    Keybind Test2;
+    Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
     Test2.Command = "pkill exert";
-    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), &Test2});
+    CachedData.Keybinds.insert({KeysymToKeycode(XK_m), Test2}); */
 
-        for (const auto& pair : CachedData.Keybinds) {
-        std::cout << "Keycode: " << pair.first << ", Modifier: " << pair.second->Modifier << ", Command: " << pair.second->Command << std::endl;
+    for (const auto& pair : CachedData.Keybinds) {
+        std::cout << "Keycode: " << pair.first << ", Modifier: " << pair.second.Modifier << ", Command: " << pair.second.Command << std::endl;
     }
     std::cout << "LOG: Test Keybinds" << std::endl;
 

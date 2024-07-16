@@ -10,7 +10,7 @@ struct Keybind {
 
 struct Runtime {
     // Key is the letter / number / whatever associated with the keybind
-    std::multimap<unsigned int, struct Keybind*> Keybinds;
+    std::multimap<unsigned int, struct Keybind> Keybinds;
 };
 
 const std::string PIPE_PATH = "/tmp/wmking-runtime";
