@@ -50,6 +50,7 @@ std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
         }
     }
     std::cerr << "Could not find the specified window struct for window: " << Window << std::endl;
+    sleep(1);
     exit(EXIT_FAILURE);
 }
 
@@ -57,7 +58,9 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
 
     if (Event->event != 0) {
-        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow->Window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
+        if (WM.FocusedWindow != nullptr) {
+            xcb_change_window_attributes(WM.Connection, WM.FocusedWindow->Window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
+        }
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
         WM.FocusedWindow = GetWindowStructFromWindow(Event->event);
@@ -203,7 +206,7 @@ void RunEventLoop() {
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
-            //case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
+            case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             default: { break; }
         }
     }
