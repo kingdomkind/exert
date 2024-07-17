@@ -55,6 +55,8 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     if (Event->event != 0) {
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
+    } else {
+        std::cout << "rejected" << std::endl;
     }
 }
 
