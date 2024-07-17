@@ -47,6 +47,7 @@ const uint32_t BORDER_WIDTH = 3;
 const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
+uint32_t Offset = 0;
 
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
@@ -109,7 +110,8 @@ void StartupWM() {
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    uint32_t Parameters[] = {0, 0, 800, 800, BORDER_WIDTH};
+    uint32_t Parameters[] = {Offset, Offset, 800, 800, BORDER_WIDTH};
+    Offset += 40;
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
