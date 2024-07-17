@@ -43,6 +43,14 @@ const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 uint32_t Offset = 0;
 
+void PrintVisibleWindows() {
+    std::cout << "Visible Windows: ";
+    for (auto WindowStruct: WM.VisibleWindows) {
+        std::cout << WindowStruct->Window << " ";
+    }
+    std::cout << std::endl;
+}
+
 std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
     for (auto WindowStruct: WM.VisibleWindows) {
         if (WindowStruct->Window == Window) {
@@ -50,7 +58,6 @@ std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
         }
     }
     std::cerr << "Could not find the specified window struct for window: " << Window << std::endl;
-    sleep(1);
     exit(EXIT_FAILURE);
 }
 
@@ -135,6 +142,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     WM.VisibleWindows.insert(NewWindow);
 
     std::cout << "ADDED! " << Event->window << std::endl;  // FLAG
+    PrintVisibleWindows();
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
@@ -144,7 +152,8 @@ void RemoveWindowStructFromSet(xcb_window_t Window) {
     for (auto WindowStruct: WM.VisibleWindows) {
         if (WindowStruct->Window == Window) {
             WM.VisibleWindows.erase(WindowStruct);
-            std::cout << "ERASED! " << Window << std::endl; 
+            std::cout << "ERASED! " << Window << std::endl;
+            PrintVisibleWindows();
             return;
         }
     }
