@@ -131,7 +131,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
     WM.VisibleWindows.insert(NewWindow);
 
-    std::cout << "ADDED!"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
+    std::cout << "ADDED! " << Event->window << std::endl;  // FLAG
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
