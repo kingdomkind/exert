@@ -55,6 +55,7 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     if (Event->event != 0) {
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
+        xcb_flush(WM.Connection);
     } else {
         std::cout << "rejected" << std::endl;
     }
@@ -107,11 +108,11 @@ void StartupWM() {
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
     uint32_t Parameters[] = {0, 0, 800, 800, BORDER_WIDTH};
-    uint32_t AttributesMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     uint32_t BorderColour = 0xff0000;
     uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &AttributesMasks);
+    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &BorderColour);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
 
