@@ -158,10 +158,10 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
         }
     }
 
-    if (WM.FocusedWindow->Window == Window) {
-        std::cout << "Focused window has been deleted! Setting to nullptr" << std::endl;
-        WM.FocusedWindow = nullptr;
-    }
+    //if (WM.FocusedWindow->Window == Window) {
+    //    std::cout << "Focused window has been deleted! Setting to nullptr" << std::endl;
+    //    WM.FocusedWindow = nullptr;
+    //}
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
