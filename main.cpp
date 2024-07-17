@@ -157,6 +157,7 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
 
             if (WM.FocusedWindow->Window == Window) {
                 WM.FocusedWindow = nullptr;
+                std::cout << "Focused Window was deleted, setting to nullptr" << std::endl;
             }
             return;
         }
