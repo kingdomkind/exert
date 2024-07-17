@@ -143,6 +143,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
                     std::string SubCommand = Command.substr(Prefix.length() + 1);
                     auto Found = InternalCommand.find(SubCommand);
                     if (Found != InternalCommand.end()) {
+                        std::cout << "Executing Internal Command: " << SubCommand << std::endl; 
                         Found->second();
                     } else {
                         std::cerr << "No matching function to call for: " << SubCommand << std::endl;
