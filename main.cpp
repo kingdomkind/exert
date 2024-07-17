@@ -3,15 +3,19 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <ostream>
 #include <set>
+#include <unordered_map>
+#include <vector>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
+
 
 enum Split {
     VERTICAL,
@@ -33,7 +37,7 @@ struct WM {
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     xcb_window_t InputWindow;
-    std::set<std::unique_ptr<Node>> Tree;
+    //std::vector<std::unique_ptr<Node>> Tree;
     std::set<xcb_window_t> VisibleWindows;
 };
 
@@ -117,6 +121,13 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     }
 }
 
+
+std::unordered_map<std::string, std::function<void()>> InternalCommand = {
+    {"KillActive", []() { KillWindow(WM.InputWindow); }},
+    {"ExitWM", []() { ExitWM(); }},
+};
+
+
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
@@ -126,13 +137,19 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
             if ((Event->state & Pair->second.Modifier) && Event->detail == Keycode) {
-                if (Pair->second.Command == "killactive") {
-                    KillWindow(WM.InputWindow);
-                } else if (Pair->second.Command == "exitwm") {
-                    ExitWM();
+                std::string Prefix = "exert-command";
+                std::string Command = Pair->second.Command;
+                if (Command.rfind(Prefix, 0) == 0) {
+                    std::string SubCommand = Command.substr(Prefix.length() + 1);
+                    auto Found = InternalCommand.find(SubCommand);
+                    if (Found != InternalCommand.end()) {
+                        Found->second();
+                    } else {
+                        std::cerr << "No matching function to call for: " << SubCommand << std::endl;
+                    }
                 } else if (fork() == 0) {
-                    std::cout << "Executing: " << Pair->second.Command << std::endl;
-                    execl("/bin/sh", "/bin/sh", "-c", Pair->second.Command.c_str(), (void *)NULL);
+                    std::cout << "Executing: " << Command << std::endl;
+                    execl("/bin/sh", "/bin/sh", "-c", Command.c_str(), (void *)NULL);
                 }
                 return;
             }
@@ -187,16 +204,16 @@ int main() {
 
     Keybind Test2 = {};
     Test2.Modifier = XCB_MOD_MASK_1;
-    Test2.Command = "exitwm";
+    Test2.Command = "exert-command ExitWM";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
 
     Keybind Test3 = {};
     Test3.Modifier = XCB_MOD_MASK_1;
-    Test3.Command = "killactive";
+    Test3.Command = "exert-command KillActive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
 
-    auto DefaultNode = std::make_unique<Node>();
-    WM.Tree.insert(DefaultNode);
+    //auto DefaultNode = std::make_unique<Node>();
+    //7WM.Tree.push_back(DefaultNode);
 
     StartupWM();
     RunEventLoop();
