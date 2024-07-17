@@ -36,7 +36,7 @@ struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
-    xcb_window_t InputWindow;
+    xcb_window_t FocusedWindow;
     std::vector<std::unique_ptr<Node>> Tree;
     std::set<xcb_window_t> VisibleWindows;
 };
@@ -45,16 +45,13 @@ WM WM;
 
 const uint32_t BORDER_WIDTH = 3;
 
-void AddWindowToTree(xcb_window_t Window) {
-
-}
-
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
 
     if (Event->event != 0) {
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
+        WM.FocusedWindow = Event->event;
         xcb_flush(WM.Connection);
     } else {
         std::cout << "rejected" << std::endl;
@@ -141,7 +138,7 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
 
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { KillWindow(WM.InputWindow); }},
+    {"KillActive", []() { KillWindow(WM.FocusedWindow); }},
     {"ExitWM", []() { ExitWM(); }},
 };
 
@@ -149,8 +146,6 @@ std::unordered_map<std::string, std::function<void()>> InternalCommand = {
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
-    WM.InputWindow = Event->child;
-    std::cout << "Set Input Window to " << WM.InputWindow << std::endl;
     auto TargetRange = Runtime.Keybinds.equal_range(Event->detail);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
