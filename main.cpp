@@ -227,8 +227,8 @@ int main() {
     Test3.Command = "exert-command KillActive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
 
-    auto DefaultNode = std::make_unique<Node>();
-    WM.Tree.push_back(DefaultNode);
+    //auto DefaultNode = std::make_unique<Node>();
+    //WM.Tree.push_back(DefaultNode);
 
     StartupWM();
     RunEventLoop();
