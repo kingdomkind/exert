@@ -37,13 +37,26 @@ struct WM {
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     xcb_window_t InputWindow;
-    //std::vector<std::unique_ptr<Node>> Tree;
+    std::vector<std::unique_ptr<Node>> Tree;
     std::set<xcb_window_t> VisibleWindows;
 };
 
 WM WM;
 
 const uint32_t BORDER_WIDTH = 3;
+
+void AddWindowToTree(xcb_window_t Window) {
+
+}
+
+void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
+
+    if (Event->event != 0) {
+        std::cout << "Setting window focus to: " << Event->event << std::endl;
+        xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
+    }
+}
 
 void KillWindow(xcb_window_t Window) {
     std::cout << "Attempting to kill window: " << Window << std::endl;
@@ -83,7 +96,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     uint32_t AttributesMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE | 0xff0000};
     uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL, &AttributesMasks); // Before this was checked, test if needed
+    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL, &AttributesMasks);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
 
     WM.VisibleWindows.insert(Event->window);
@@ -169,6 +182,7 @@ void RunEventLoop() {
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            case XCB_ENTER_NOTIFY: { break; }
             default: { break; }
         }
     }
@@ -213,8 +227,8 @@ int main() {
     Test3.Command = "exert-command KillActive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
 
-    //auto DefaultNode = std::make_unique<Node>();
-    //7WM.Tree.push_back(DefaultNode);
+    auto DefaultNode = std::make_unique<Node>();
+    WM.Tree.push_back(DefaultNode);
 
     StartupWM();
     RunEventLoop();
