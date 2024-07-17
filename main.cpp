@@ -44,14 +44,19 @@ struct WM {
 WM WM;
 
 const uint32_t BORDER_WIDTH = 3;
+const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
+const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
+
 
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
 
     if (Event->event != 0) {
+        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
         WM.FocusedWindow = Event->event;
+        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
         xcb_flush(WM.Connection);
     } else {
         std::cout << "rejected" << std::endl;
@@ -106,11 +111,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
     uint32_t Parameters[] = {0, 0, 800, 800, BORDER_WIDTH};
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    uint32_t BorderColour = 0xff0000;
     uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &BorderColour);
+    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
 
     WM.VisibleWindows.insert(Event->window);
