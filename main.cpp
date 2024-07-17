@@ -7,8 +7,8 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
@@ -24,15 +24,15 @@ struct Inequality {
 
 struct Window {
     xcb_window_t Window;
-    std::array<std::unique_ptr<Inequality>, 2> Inequalities;
+    std::array<std::shared_ptr<Inequality>, 2> Inequalities;
 };
 
 struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
-    xcb_window_t FocusedWindow;
-    std::set<xcb_window_t> VisibleWindows;
+    std::shared_ptr<Window> FocusedWindow;
+    std::unordered_set<std::shared_ptr<Window>> VisibleWindows;
 };
 
 WM WM;
@@ -43,18 +43,28 @@ const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 uint32_t Offset = 0;
 
+std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
+    for (auto WindowStruct: WM.VisibleWindows) {
+        if (WindowStruct->Window == Window) {
+            return WindowStruct;
+        }
+    }
+    std::cerr << "Could not find the specified window struct for window: " << Window << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
 
     if (Event->event != 0) {
-        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
+        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow->Window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
-        WM.FocusedWindow = Event->event;
-        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
+        WM.FocusedWindow = GetWindowStructFromWindow(Event->event);
+        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow->Window, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
         xcb_flush(WM.Connection);
     } else {
-        std::cout << "rejected" << std::endl;
+        std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
     }
 }
 
@@ -104,6 +114,12 @@ void StartupWM() {
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+
+    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
+    NewWindow->Window = Event->window;
+
+    // ADD POSITIONING + SPLIT LOGIC HERE!
+
     uint32_t Parameters[] = {Offset, Offset, 800, 800, BORDER_WIDTH};
     Offset += 40;
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
@@ -113,32 +129,37 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
     xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
 
-    WM.VisibleWindows.insert(Event->window);
+    WM.VisibleWindows.insert(NewWindow);
+
     std::cout << "ADDED!"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
 }
 
+void RemoveWindowStructFromSet(xcb_window_t Window) {
+    for (auto WindowStruct: WM.VisibleWindows) {
+        if (WindowStruct->Window == Window) {
+            WM.VisibleWindows.erase(WindowStruct);
+            std::cout << "ERASED! " << Window << std::endl; 
+            return;
+        }
+    }
+}
+
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    if (WM.VisibleWindows.count(Event->window)) {
-        WM.VisibleWindows.erase(Event->window);
-        std::cout << "ERASED! (Unmap)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
-    }
+    RemoveWindowStructFromSet(Event->window);
 }
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
-    if (WM.VisibleWindows.count(Event->window)) {
-        WM.VisibleWindows.erase(Event->window);
-        std::cout << "ERASED! (Destroy)"; for (auto it = WM.VisibleWindows.begin(); it != WM.VisibleWindows.end(); ++it) {std::cout << *it << " "; } std::cout << std::endl; // FLAG
-    }
+    RemoveWindowStructFromSet(Event->window);
 }
 
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { KillWindow(WM.FocusedWindow); }},
+    {"KillActive", []() { KillWindow(WM.FocusedWindow->Window); }},
     {"ExitWM", []() { ExitWM(); }},
 };
 
