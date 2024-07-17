@@ -112,14 +112,14 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
 
 void StartupWM() {
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "LOG: Changed checked window attributes" << std::endl;
-    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "LOG: Reset all grabbed keys" << std::endl;
+    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "Changed checked window attributes" << std::endl;
+    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {
         xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
-    xcb_flush(WM.Connection); std::cout << "LOG: Starting up the WM" << std::endl;
+    xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
@@ -205,7 +205,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 }
 
 void RunEventLoop() {
-    std::cout << "LOG: Running the event loop" << std::endl;
+    std::cout << "Running the event loop" << std::endl;
     if (fork() == 0) { std::cout << "showing kitty" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "kitty", (void *)NULL);}
 
     while (true) {
@@ -228,7 +228,7 @@ int main() {
         std::cerr << "Failed to open the XCB connection!" << std::endl;
         return EXIT_FAILURE;
     }
-    std::cout << "LOG: Initialised the connection" << std::endl;
+    std::cout << "Initialised the connection" << std::endl;
 
     // Create a screen
     WM.Screen = xcb_setup_roots_iterator(xcb_get_setup(WM.Connection)).data;
@@ -236,14 +236,14 @@ int main() {
         std::cerr << "Failed to get the XCB screen!" << std::endl;
         return EXIT_FAILURE;
     }
-    std::cout << "LOG: Initialised the screen" << std::endl;
+    std::cout << "Initialised the screen" << std::endl;
 
     WM.Keysyms = xcb_key_symbols_alloc(WM.Connection);
     if (!WM.Keysyms) {
         std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
         return EXIT_FAILURE;
     }
-    std::cout << "LOG: Initialised the key symbols" << std::endl;
+    std::cout << "Initialised the key symbols" << std::endl;
 
     Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
