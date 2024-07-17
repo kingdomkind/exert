@@ -9,27 +9,22 @@
 #include <ostream>
 #include <set>
 #include <unordered_map>
-#include <vector>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 
+enum SplitLine {X,Y};
 
-enum Split {
-    VERTICAL,
-    HORIZONTAL,
-    NONE,
+struct Inequality {
+    SplitLine Axis;
+    float Position;
 };
 
-struct Node {
-    Split Direction = NONE;
-    // unsigned int Ratio; // eg. 0.4 means the left window is smaller
-    
-    std::unique_ptr<Node> Parent = nullptr;
-    std::unique_ptr<Node> Left = nullptr;
-    std::unique_ptr<Node> Right = nullptr;
+struct Window {
+    xcb_window_t Window;
+    std::array<std::unique_ptr<Inequality>, 2> Inequalities;
 };
 
 struct WM {
@@ -37,7 +32,6 @@ struct WM {
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     xcb_window_t FocusedWindow;
-    std::vector<std::unique_ptr<Node>> Tree;
     std::set<xcb_window_t> VisibleWindows;
 };
 
@@ -232,9 +226,6 @@ int main() {
     Test3.Modifier = XCB_MOD_MASK_1;
     Test3.Command = "exert-command KillActive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
-
-    //auto DefaultNode = std::make_unique<Node>();
-    //WM.Tree.push_back(DefaultNode);
 
     StartupWM();
     RunEventLoop();
