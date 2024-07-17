@@ -148,7 +148,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_flush(WM.Connection);
 }
 
-void RemoveWindowStructFromSet(xcb_window_t Window) {
+void RemoveWindowStructFromWM(xcb_window_t Window) {
     for (auto WindowStruct: WM.VisibleWindows) {
         if (WindowStruct->Window == Window) {
             WM.VisibleWindows.erase(WindowStruct);
@@ -157,16 +157,21 @@ void RemoveWindowStructFromSet(xcb_window_t Window) {
             return;
         }
     }
+
+    if (WM.FocusedWindow->Window == Window) {
+        std::cout << "Focused window has been deleted! Setting to nullptr" << std::endl;
+        WM.FocusedWindow = nullptr;
+    }
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    RemoveWindowStructFromSet(Event->window);
+    RemoveWindowStructFromWM(Event->window);
 }
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
-    RemoveWindowStructFromSet(Event->window);
+    RemoveWindowStructFromWM(Event->window);
 }
 
 
