@@ -15,16 +15,13 @@
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 
-enum SplitLine {X,Y};
-
-struct Inequality {
-    SplitLine Axis;
+struct SplitLine {
     float Position;
 };
 
 struct Window {
     xcb_window_t Window;
-    std::array<std::shared_ptr<Inequality>, 2> Inequalities;
+    std::array<std::shared_ptr<SplitLine>, 4> Inequalities; // 0 is lower x bound, 1 is upper x bound, 2 is lower y bound, 3 is upper y bound
 };
 
 struct WM {
@@ -122,22 +119,77 @@ void StartupWM() {
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
+void UpdateWindowToCurrentSplits(std::shared_ptr<Window> Window) {
+    uint32_t Width, Height, LowerBoundX, UpperBoundX, LowerBoundY, UpperBoundY;
+
+    // TODO, GET THE DEFAULT VALUE DYNAMICALLY (IT'LL BE A SCALAR VALUE ANYWAYS)
+    if (Window->Inequalities[0] == nullptr) {
+        LowerBoundX = 0;
+    } else {
+        LowerBoundX = Window->Inequalities[0]->Position;
+    }
+    if (Window->Inequalities[1] == nullptr) {
+        UpperBoundX = 1280;
+    } else {
+        UpperBoundX = Window->Inequalities[1]->Position;
+    }
+    if (Window->Inequalities[2] == nullptr) {
+        LowerBoundY = 0;
+    } else {
+        LowerBoundY = Window->Inequalities[2]->Position;
+    }
+    if (Window->Inequalities[3] == nullptr) {
+        UpperBoundY = 800;
+    } else {
+        UpperBoundY = Window->Inequalities[3]->Position;
+    }
+
+    Width = UpperBoundX - LowerBoundX;
+    Height = UpperBoundY - LowerBoundY;
+
+    uint32_t Parameters[] = {LowerBoundX, LowerBoundY, Width, Height, BORDER_WIDTH};
+    xcb_configure_window(WM.Connection, Window->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
+    xcb_flush(WM.Connection);
+    std::cout << "Updated Window " << Window->Window << " to current splits, PosX: " << LowerBoundX << ", PosY: " << LowerBoundY << ", Width: " << Width << ", Height: " << Height << std::endl;
+}
+
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
 
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
     NewWindow->Window = Event->window;
 
-    // ADD POSITIONING + SPLIT LOGIC HERE!
 
-    uint32_t Parameters[] = {Offset, Offset, 800, 800, BORDER_WIDTH};
-    Offset += 40;
+    // ADD POSITIONING + SPLIT LOGIC HERE!
+    if (!(WM.VisibleWindows.size() == 0)) { // Need to create a split, this isn't the first window opened
+        if (!(WM.FocusedWindow == nullptr)) { // Create window size & splits based on the focused window
+            // Testing, always opens windows on the left across x axis
+            xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedWindow->Window), NULL);
+
+            if (FocusedWindowGeometry) {
+                std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
+                Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0);
+                WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
+                UpdateWindowToCurrentSplits(WM.FocusedWindow);
+                NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
+            } else {
+                std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    //uint32_t Parameters[] = {Offset, Offset, 800, 800, BORDER_WIDTH};
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    //uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
 
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
-    xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
+    //xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
+    UpdateWindowToCurrentSplits(NewWindow);
 
     WM.VisibleWindows.insert(NewWindow);
 
