@@ -233,35 +233,6 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
             }
         }
     }
-
-    /*
-    if (Found == true) {
-        std::cout << "Splitline counts: ";
-        for (auto SplitLine : WM.AllSplitLines) {
-            std::cout << "Splitline "
-            if (SplitLine.use_count() == 3) {
-                bool Removed = false;
-                for (auto WindowStruct: WM.VisibleWindows) {
-                    for (int SplitIndex = 0; SplitIndex < static_cast<int>(WindowStruct->Inequalities.max_size()); SplitIndex++) {
-                        if (WindowStruct->Inequalities[SplitIndex] == SplitLine) {
-                            WindowStruct->Inequalities[SplitIndex] = nullptr;
-                            Removed = true;
-                            break; // There should only be one window with that split line
-                        }
-                    }
-                    if (Removed == true) {
-                        std::cout << "Removed split from " << WindowStruct->Window << std::endl;
-                        UpdateWindowToCurrentSplits(WindowStruct);
-                    } else {
-                        std::cerr << "No removeable splitlines detected when removing window as Removed was false -- this is impossible!" << std::endl;
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                WM.AllSplitLines.erase(SplitLine);
-            }
-        }
-    }
-    */
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
@@ -276,7 +247,7 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
 
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { KillWindow(WM.FocusedWindow->Window); }},
+    {"KillActive", []() { if (!(WM.FocusedWindow == nullptr)) { KillWindow(WM.FocusedWindow->Window); } else { std::cerr << "Attempted to kill focused window - which is nullptr!"; exit(EXIT_FAILURE); } }},
     {"ExitWM", []() { ExitWM(); }},
 };
 
