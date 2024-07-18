@@ -188,6 +188,7 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     float RatioX = AccountOffset.X / WindowGeometry->width;
     float RatioY = AccountOffset.Y / WindowGeometry->length;
 
+    std::cout << "Offset Y: " << AccountOffset.Y << ", Length: " << WindowGeometry->length << std::endl;
     std::cout << "RatioX Segment Cursor: " << RatioX << ", RatioY Segment Cursor: " << RatioY << std::endl; 
 
     if (RatioY < 0.2) {
