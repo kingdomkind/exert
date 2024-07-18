@@ -225,7 +225,7 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
             if (SplitLine.use_count() == 3) {
                 bool Removed = false;
                 for (auto WindowStruct: WM.VisibleWindows) {
-                    for (int SplitIndex = 0; SplitIndex < WindowStruct->Inequalities.max_size(); SplitIndex++) {
+                    for (int SplitIndex = 0; SplitIndex < static_cast<int>(WindowStruct->Inequalities.max_size()); SplitIndex++) {
                         if (WindowStruct->Inequalities[SplitIndex] == SplitLine) {
                             WindowStruct->Inequalities[SplitIndex] = nullptr;
                             Removed = true;

@@ -13,4 +13,4 @@ cd ..
 CURRENTDIR=$(pwd)
 
 echo "exec $CURRENTDIR/build/exert" > ~/.xinitrc
-startx  &> log.txt
+startx > log.txt 2>&1
