@@ -234,7 +234,9 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                     if (WindowStruct->Inequalities[SplitIndex].use_count() == 1) {
                         if (ReplaceX == -1) {
                             WindowStruct->Inequalities[SplitIndex] = nullptr;
+                            std::cout << "Removed split from " << WindowStruct->Window << std::endl;
                         } else {
+                            std::cout << "Removed split from " << WindowStruct->Window << "but also added a new one so 2 windows can converge in the middle" << std::endl;
                             WindowStruct->Inequalities[SplitIndex] = Split;
                         }
                         Removed = true;
