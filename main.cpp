@@ -186,9 +186,9 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     AccountOffset.Y = CursorPosition.Y - WindowGeometry->y;
 
     float RatioX = AccountOffset.X / WindowGeometry->width;
-    float RatioY = AccountOffset.Y / WindowGeometry->length;
+    float RatioY = AccountOffset.Y / WindowGeometry->height;
 
-    std::cout << "Offset Y: " << AccountOffset.Y << ", Length: " << WindowGeometry->length << std::endl;
+    std::cout << "Offset Y: " << AccountOffset.Y << ", Length: " << WindowGeometry->height << std::endl;
     std::cout << "RatioX Segment Cursor: " << RatioX << ", RatioY Segment Cursor: " << RatioY << std::endl; 
 
     if (RatioY < 0.2) {
@@ -224,7 +224,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0); // Split is x axis
                     std::cout << "Set split pos to x axis" << std::endl;
                 } else {
-                    Split->Position = FocusedWindowGeometry->y + (FocusedWindowGeometry->length / 2.0); // Split is in y axis
+                    Split->Position = FocusedWindowGeometry->y + (FocusedWindowGeometry->height / 2.0); // Split is in y axis
                     std::cout << "Set split pos to y axis" << std::endl;
                 }
 
