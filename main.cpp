@@ -55,7 +55,7 @@ std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
             return WindowStruct;
         }
     }
-    std::cerr << "Could not find the specified window struct for window: " << Window << std::endl;
+    std::cout << "Could not find the specified window struct for window: " << Window << std::endl;
     exit(EXIT_FAILURE);
 }
 
@@ -90,7 +90,7 @@ void ExitWM() {
 unsigned int KeysymToKeycode(const unsigned int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
-        std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
+        std::cout << "Failed to get keycode for keysym: " << Keysym << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -102,7 +102,7 @@ unsigned int KeysymToKeycode(const unsigned int Keysym) {
 unsigned int KeycodeToKeysym(const unsigned int Keycode) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
     if (!KeySym) {
-        std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
+        std::cout << "Failed to get keycode for keycode: " << Keycode << std::endl;
         exit(EXIT_FAILURE);
     }
     return KeySym;
@@ -176,11 +176,11 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
                 WM.AllSplitLines.insert(Split);
             } else {
-                std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << std::endl;
+                std::cout << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << std::endl;
                 exit(EXIT_FAILURE);
             }
         } else {
-            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << std::endl;
+            std::cout << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -229,12 +229,13 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                         if (WindowStruct->Inequalities[SplitIndex] == SplitLine) {
                             WindowStruct->Inequalities[SplitIndex] = nullptr;
                             Removed = true;
+                            std::cout << "we've done it lads " << std::endl;
                         }
                     }
                     if (Removed == true) {
                         UpdateWindowToCurrentSplits(WindowStruct);
                     } else {
-                        std::cerr << "No removeable splitlines detected when removing window as Removed was false -- this is impossible!" << std::endl;
+                        std::cout << "No removeable splitlines detected when removing window as Removed was false -- this is impossible!" << std::endl;
                     }
                 }
                 WM.AllSplitLines.erase(SplitLine);
@@ -277,7 +278,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
                         std::cout << "Executing Internal Command: " << SubCommand << std::endl; 
                         Found->second();
                     } else {
-                        std::cerr << "No matching function to call for: " << SubCommand << std::endl;
+                        std::cout << "No matching function to call for: " << SubCommand << std::endl;
                     }
                 } else if (fork() == 0) {
                     std::cout << "Executing: " << Command << std::endl;
@@ -310,7 +311,7 @@ int main() {
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(WM.Connection)) {
-        std::cerr << "Failed to open the XCB connection!" << std::endl;
+        std::cout << "Failed to open the XCB connection!" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the connection" << std::endl;
@@ -318,14 +319,14 @@ int main() {
     // Create a screen
     WM.Screen = xcb_setup_roots_iterator(xcb_get_setup(WM.Connection)).data;
     if (!WM.Screen) {
-        std::cerr << "Failed to get the XCB screen!" << std::endl;
+        std::cout << "Failed to get the XCB screen!" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the screen" << std::endl;
 
     WM.Keysyms = xcb_key_symbols_alloc(WM.Connection);
     if (!WM.Keysyms) {
-        std::cerr << "ERROR: Failed to allocate key symbols" << std::endl;
+        std::cout << "ERROR: Failed to allocate key symbols" << std::endl;
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
