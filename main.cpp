@@ -30,6 +30,7 @@ struct WM {
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Window> FocusedWindow;
     std::unordered_set<std::shared_ptr<Window>> VisibleWindows;
+    std::unordered_set<std::shared_ptr<SplitLine>> AllSplitLines;
 };
 
 WM WM;
@@ -183,13 +184,9 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
         }
     }
 
-    //uint32_t Parameters[] = {Offset, Offset, 800, 800, BORDER_WIDTH};
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    //uint32_t ConfigureMasks = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
-    //xcb_configure_window(WM.Connection, Event->window, ConfigureMasks, Parameters);
     UpdateWindowToCurrentSplits(NewWindow);
 
     WM.VisibleWindows.insert(NewWindow);
@@ -202,9 +199,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 }
 
 void RemoveWindowStructFromWM(xcb_window_t Window) {
-    for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is Window we manage
+    for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is a Window we manage
         if (WindowStruct->Window == Window) {
             WM.VisibleWindows.erase(WindowStruct);
+            
             std::cout << "ERASED! " << Window << std::endl;
             PrintVisibleWindows();
 
@@ -212,9 +210,15 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                 WM.FocusedWindow = nullptr;
                 std::cout << "Focused Window was deleted, setting to nullptr" << std::endl;
             }
-            return;
+            break;
         }
     }
+
+    std::cout << "Splitline counts: ";
+    for (auto SplitLine : WM.AllSplitLines) {
+        std::cout << SplitLine.use_count();
+    }
+    std::cout << std::endl;
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
