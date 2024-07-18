@@ -200,8 +200,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 }
 
 void RemoveWindowStructFromWM(xcb_window_t Window) {
+    bool Found = false;
     for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is a Window we manage
         if (WindowStruct->Window == Window) {
+            Found = true;
             WM.VisibleWindows.erase(WindowStruct);
             
             std::cout << "ERASED! " << Window << std::endl;
@@ -215,11 +217,31 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
         }
     }
 
-    std::cout << "Splitline counts: ";
-    for (auto SplitLine : WM.AllSplitLines) {
-        std::cout << SplitLine.use_count();
+    if (Found == true) {
+        std::cout << "Splitline counts: ";
+        for (auto SplitLine : WM.AllSplitLines) {
+            std::cout << SplitLine.use_count();
+
+            if (SplitLine.use_count() == 3) {
+                for (auto WindowStruct: WM.VisibleWindows) {
+                    bool Removed = false;
+                    for (int SplitIndex = 0; SplitIndex < WindowStruct->Inequalities.max_size(); SplitIndex++) {
+                        if (WindowStruct->Inequalities[SplitIndex] == SplitLine) {
+                            WindowStruct->Inequalities[SplitIndex] = nullptr;
+                            Removed = true;
+                        }
+                    }
+                    if (Removed == true) {
+                        UpdateWindowToCurrentSplits(WindowStruct);
+                    } else {
+                        std::cerr << "No removeable splitlines detected when removing window as Removed was false -- this is impossible!" << std::endl;
+                    }
+                }
+                WM.AllSplitLines.erase(SplitLine);
+            }
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
