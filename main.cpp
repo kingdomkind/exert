@@ -228,14 +228,15 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                         if (WindowStruct->Inequalities[SplitIndex] == SplitLine) {
                             WindowStruct->Inequalities[SplitIndex] = nullptr;
                             Removed = true;
-                            std::cout << "we've done it lads " << std::endl;
                             break; // There should only be one window with that split line
                         }
                     }
                     if (Removed == true) {
+                        std::cout << "Removed split from " << WindowStruct->Window << std::endl;
                         UpdateWindowToCurrentSplits(WindowStruct);
                     } else {
                         std::cerr << "No removeable splitlines detected when removing window as Removed was false -- this is impossible!" << std::endl;
+                        exit(EXIT_FAILURE);
                     }
                 }
                 WM.AllSplitLines.erase(SplitLine);
