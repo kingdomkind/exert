@@ -207,8 +207,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
     NewWindow->Window = Event->window;
 
-
-    // ADD POSITIONING + SPLIT LOGIC HERE!
     if (!(WM.VisibleWindows.size() == 0)) { // Need to create a split, this isn't the first window opened
         if (!(WM.FocusedWindow == nullptr)) { // Create window size & splits based on the focused window
             // Testing, always opens windows on the left across x axis
@@ -221,27 +219,33 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
                 if (Section == RIGHT || Section == LEFT) {
                     Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0); // Split is x axis
+                    std::cout << "Set split pos to x axis" << std::endl;
                 } else {
                     Split->Position = FocusedWindowGeometry->y + (FocusedWindowGeometry->length / 2.0); // Split is in y axis
+                    std::cout << "Set split pos to y axis" << std::endl;
                 }
 
                 switch (Section) {
                     case RIGHT: {
+                        std::cout << "Setting split to Right" << std::endl;
                         WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
                         NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
                         break;
                     }
                     case LEFT: {
+                        std::cout << "Setting split to Left" << std::endl;
                         WM.FocusedWindow->Inequalities[0] = Split;
                         NewWindow->Inequalities[1] = Split;
                         break;
                     }
                     case DOWN: {
+                        std::cout << "Setting split to Down" << std::endl;
                         WM.FocusedWindow->Inequalities[3] = Split; // 3 Means Y upper bound
                         NewWindow->Inequalities[2] = Split; // 0 Means Y lower bound
                         break;
                     }
                     case UP: {
+                        std::cout << "Setting split to Up" << std::endl;
                         WM.FocusedWindow->Inequalities[2] = Split;
                         NewWindow->Inequalities[3] = Split;
                         break;
