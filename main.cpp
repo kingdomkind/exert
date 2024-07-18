@@ -16,10 +16,10 @@
 #include <X11/keysym.h>
 
 enum WindowSegment {
-    LEFT, // Remaining 3/5 middle left
-    RIGHT, // Remaining 3/5 middle right
-    UP, // Top 1/5 of the window
-    DOWN, // Bottom 1/5 of the window
+    LEFT, // Remaining 2/4 middle left
+    RIGHT, // Remaining 2/4 middle right
+    UP, // Top 1/4 of the window
+    DOWN, // Bottom 1/4 of the window
 };
 
 struct Coordinate {
@@ -191,9 +191,9 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     std::cout << "Offset Y: " << AccountOffset.Y << ", Length: " << WindowGeometry->height << std::endl;
     std::cout << "RatioX Segment Cursor: " << RatioX << ", RatioY Segment Cursor: " << RatioY << std::endl; 
 
-    if (RatioY < 0.2) {
+    if (RatioY < 0.25) {
         return UP;
-    } else if (RatioY > 0.8) {
+    } else if (RatioY > 0.75) {
         return DOWN;
     }
 
@@ -283,6 +283,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 void RemoveWindowStructFromWM(xcb_window_t Window) {
     bool Found = false;
     float ReplaceX = -1;
+    float ReplaceY = -1;
     for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is a Window we manage
         if (WindowStruct->Window == Window) {
             Found = true;
@@ -290,6 +291,11 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
             // Get X average, or if any is nullptr then remain -1 to represent nullptr
             if (!((WindowStruct->Inequalities[0] == nullptr) || (WindowStruct->Inequalities[1] == nullptr))) {
                 ReplaceX = (WindowStruct->Inequalities[0]->Position + WindowStruct->Inequalities[1]->Position) / 2.0;
+            }
+
+            // Get Y average
+            if (!((WindowStruct->Inequalities[2] == nullptr) || (WindowStruct->Inequalities[3] == nullptr))) {
+                ReplaceX = (WindowStruct->Inequalities[2]->Position + WindowStruct->Inequalities[3]->Position) / 2.0;
             }
 
             WM.VisibleWindows.erase(WindowStruct);
@@ -307,7 +313,6 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
 
     if (Found == true) {
         std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
-        Split->Position = ReplaceX; // X splitline
 
         for (auto WindowStruct: WM.VisibleWindows) { 
             bool Removed = false;
@@ -315,13 +320,26 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                 if (WindowStruct->Inequalities[SplitIndex] != nullptr) {
                     std::cout << "Split count: " << WindowStruct->Inequalities[SplitIndex].use_count() << std::endl;
                     if (WindowStruct->Inequalities[SplitIndex].use_count() == 1) {
-                        if (ReplaceX == -1) {
-                            WindowStruct->Inequalities[SplitIndex] = nullptr;
-                            std::cout << "Removed split from " << WindowStruct->Window << std::endl;
+                        if (SplitIndex == 0 || SplitIndex == 1) {
+                            Split->Position = ReplaceX; // X splitline
+                            if (ReplaceX == -1) {
+                                WindowStruct->Inequalities[SplitIndex] = nullptr;
+                                std::cout << "Removed X split from " << WindowStruct->Window << std::endl;
+                            } else {
+                                std::cout << "Removed X split from " << WindowStruct->Window << "but also added a new one so 2 windows can converge in the middle" << std::endl;
+                                WindowStruct->Inequalities[SplitIndex] = Split;
+                            }
                         } else {
-                            std::cout << "Removed split from " << WindowStruct->Window << "but also added a new one so 2 windows can converge in the middle" << std::endl;
-                            WindowStruct->Inequalities[SplitIndex] = Split;
+                            Split->Position = ReplaceY; // X splitline
+                            if (ReplaceY == -1) {
+                                WindowStruct->Inequalities[SplitIndex] = nullptr;
+                                std::cout << "Removed Y split from " << WindowStruct->Window << std::endl;
+                            } else {
+                                std::cout << "Removed Y split from " << WindowStruct->Window << "but also added a new one so 2 windows can converge in the middle" << std::endl;
+                                WindowStruct->Inequalities[SplitIndex] = Split;
+                            }
                         }
+
                         Removed = true;
                     }
                 } 
