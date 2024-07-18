@@ -54,7 +54,7 @@ std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
             return WindowStruct;
         }
     }
-    std::cerr << "Could not find the specified window struct for window: " << Window << std::endl;
+    std::cerr << "Could not find the specified window struct for window: " << Window << " [EXIT] " << std::endl;
     exit(EXIT_FAILURE);
 }
 
@@ -89,7 +89,7 @@ void ExitWM() {
 unsigned int KeysymToKeycode(const unsigned int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
-        std::cerr << "Failed to get keycode for keysym: " << Keysym << std::endl;
+        std::cerr << "Failed to get keycode for keysym: " << Keysym << " [EXIT] " << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -101,7 +101,7 @@ unsigned int KeysymToKeycode(const unsigned int Keysym) {
 unsigned int KeycodeToKeysym(const unsigned int Keycode) {
     xcb_keysym_t KeySym = xcb_key_symbols_get_keysym(WM.Keysyms, Keycode, 0);
     if (!KeySym) {
-        std::cerr << "Failed to get keycode for keycode: " << Keycode << std::endl;
+        std::cerr << "Failed to get keycode for keycode: " << Keycode << " [EXIT] " << std::endl;
         exit(EXIT_FAILURE);
     }
     return KeySym;
@@ -174,11 +174,11 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 UpdateWindowToCurrentSplits(WM.FocusedWindow);
                 NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
             } else {
-                std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << std::endl;
+                std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
                 exit(EXIT_FAILURE);
             }
         } else {
-            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << std::endl;
+            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -247,7 +247,7 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
 
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { if (!(WM.FocusedWindow == nullptr)) { KillWindow(WM.FocusedWindow->Window); } else { std::cerr << "Attempted to kill focused window - which is nullptr!"; exit(EXIT_FAILURE); } }},
+    {"KillActive", []() { if (!(WM.FocusedWindow == nullptr)) { KillWindow(WM.FocusedWindow->Window); } else { std::cerr << "Attempted to kill focused window - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
     {"ExitWM", []() { ExitWM(); }},
 };
 
