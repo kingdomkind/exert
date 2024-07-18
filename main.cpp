@@ -216,7 +216,6 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
             break;
         }
     }
-    std::cerr << "test" << std::endl;
 
     if (Found == true) {
         std::cout << "Splitline counts: ";
@@ -230,6 +229,7 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                             WindowStruct->Inequalities[SplitIndex] = nullptr;
                             Removed = true;
                             std::cout << "we've done it lads " << std::endl;
+                            break; // There should only be one window with that split line
                         }
                     }
                     if (Removed == true) {
