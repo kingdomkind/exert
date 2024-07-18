@@ -16,10 +16,10 @@
 #include <X11/keysym.h>
 
 enum WindowSegment {
-    LEFT, // Remaining 1/2 middle left
-    RIGHT, // Remaining 1/2 middle right
-    UP, // Top 1/4 of the window
-    DOWN, // Bottom 1/4 of the window
+    LEFT, // Remaining 3/5 middle left
+    RIGHT, // Remaining 3/5 middle right
+    UP, // Top 1/5 of the window
+    DOWN, // Bottom 1/5 of the window
 };
 
 struct Coordinate {
@@ -188,6 +188,12 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     float RatioX = AccountOffset.X / WindowGeometry->width;
     float RatioY = AccountOffset.Y / WindowGeometry->length;
 
+    if (RatioY < 0.2) {
+        return UP;
+    } else if (RatioY > 0.8) {
+        return DOWN;
+    }
+
     if (RatioX < 0.5) { // TODO ADD RATIO Y SUPPORT
         return LEFT;
     } else {
@@ -211,18 +217,38 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
             if (FocusedWindowGeometry) {
                 NewWindow->Inequalities = WM.FocusedWindow->Inequalities; // Inherit Inequalities before the new split
                 std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
-                Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0);
                 WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedWindow->Window);
 
-                if (Section == RIGHT) {
-                    WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
-                    UpdateWindowToCurrentSplits(WM.FocusedWindow);
-                    NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
-                } else if (Section == LEFT) {
-                    WM.FocusedWindow->Inequalities[0] = Split;
-                    UpdateWindowToCurrentSplits(WM.FocusedWindow);
-                    NewWindow->Inequalities[1] = Split;
+                if (Section == RIGHT || Section == LEFT) {
+                    Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0); // Split is x axis
+                } else {
+                    Split->Position = FocusedWindowGeometry->y + (FocusedWindowGeometry->length / 2.0); // Split is in y axis
                 }
+
+                switch (Section) {
+                    case RIGHT: {
+                        WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
+                        NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
+                        break;
+                    }
+                    case LEFT: {
+                        WM.FocusedWindow->Inequalities[0] = Split;
+                        NewWindow->Inequalities[1] = Split;
+                        break;
+                    }
+                    case DOWN: {
+                        WM.FocusedWindow->Inequalities[3] = Split; // 3 Means Y upper bound
+                        NewWindow->Inequalities[2] = Split; // 0 Means Y lower bound
+                        break;
+                    }
+                    case UP: {
+                        WM.FocusedWindow->Inequalities[2] = Split;
+                        NewWindow->Inequalities[3] = Split;
+                        break;
+                    }
+                }
+                UpdateWindowToCurrentSplits(WM.FocusedWindow);
+
             } else {
                 std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
                 exit(EXIT_FAILURE);
