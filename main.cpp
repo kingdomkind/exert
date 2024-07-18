@@ -174,6 +174,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
                 UpdateWindowToCurrentSplits(WM.FocusedWindow);
                 NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
+                WM.AllSplitLines.insert(Split);
             } else {
                 std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << std::endl;
                 exit(EXIT_FAILURE);
