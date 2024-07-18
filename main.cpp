@@ -199,9 +199,16 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
 void RemoveWindowStructFromWM(xcb_window_t Window) {
     bool Found = false;
+    float ReplaceX = -1;
     for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is a Window we manage
         if (WindowStruct->Window == Window) {
             Found = true;
+            
+            // Get X average, or if any is nullptr then remain -1 to represent nullptr
+            if (!((WindowStruct->Inequalities[0] == nullptr) || (WindowStruct->Inequalities[1] == nullptr))) {
+                ReplaceX = (WindowStruct->Inequalities[0]->Position + WindowStruct->Inequalities[1]->Position) / 2.0;
+            }
+
             WM.VisibleWindows.erase(WindowStruct);
             
             std::cout << "ERASED! " << Window << std::endl;
@@ -216,13 +223,20 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
     }
 
     if (Found == true) {
+        std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
+        Split->Position = ReplaceX; // X splitline
+
         for (auto WindowStruct: WM.VisibleWindows) { 
             bool Removed = false;
             for (int SplitIndex = 0; SplitIndex < static_cast<int>(WindowStruct->Inequalities.max_size()); SplitIndex++) {
                 if (WindowStruct->Inequalities[SplitIndex] != nullptr) {
                     std::cout << "Split count: " << WindowStruct->Inequalities[SplitIndex].use_count() << std::endl;
                     if (WindowStruct->Inequalities[SplitIndex].use_count() == 1) {
-                        WindowStruct->Inequalities[SplitIndex] = nullptr;
+                        if (ReplaceX == -1) {
+                            WindowStruct->Inequalities[SplitIndex] = nullptr;
+                        } else {
+                            WindowStruct->Inequalities[SplitIndex] = Split;
+                        }
                         Removed = true;
                     }
                 } 
