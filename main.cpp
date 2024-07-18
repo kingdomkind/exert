@@ -221,7 +221,6 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
         std::cout << "Splitline counts: ";
         for (auto SplitLine : WM.AllSplitLines) {
             std::cout << SplitLine.use_count();
-
             if (SplitLine.use_count() == 3) {
                 bool Removed = false;
                 for (auto WindowStruct: WM.VisibleWindows) {
