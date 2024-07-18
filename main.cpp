@@ -30,7 +30,6 @@ struct WM {
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Window> FocusedWindow;
     std::unordered_set<std::shared_ptr<Window>> VisibleWindows;
-    std::unordered_set<std::shared_ptr<SplitLine>> AllSplitLines;
 };
 
 WM WM;
@@ -174,7 +173,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
                 UpdateWindowToCurrentSplits(WM.FocusedWindow);
                 NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
-                WM.AllSplitLines.insert(Split);
             } else {
                 std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << std::endl;
                 exit(EXIT_FAILURE);
@@ -218,9 +216,26 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
     }
 
     if (Found == true) {
+        for (auto WindowStruct: WM.VisibleWindows) { 
+            bool Removed = false;
+            for (int SplitIndex = 0; SplitIndex < static_cast<int>(WindowStruct->Inequalities.max_size()); SplitIndex++) {
+                if (WindowStruct->Inequalities[SplitIndex].use_count() == 3) {
+                    WindowStruct->Inequalities[SplitIndex] = nullptr;
+                    Removed = true;
+                }
+            }
+            if (Removed == true) {
+                std::cout << "Removed split from " << WindowStruct->Window << std::endl;
+                UpdateWindowToCurrentSplits(WindowStruct);
+            }
+        }
+    }
+
+    /*
+    if (Found == true) {
         std::cout << "Splitline counts: ";
         for (auto SplitLine : WM.AllSplitLines) {
-            std::cout << SplitLine.use_count();
+            std::cout << "Splitline "
             if (SplitLine.use_count() == 3) {
                 bool Removed = false;
                 for (auto WindowStruct: WM.VisibleWindows) {
@@ -242,8 +257,8 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
                 WM.AllSplitLines.erase(SplitLine);
             }
         }
-        std::cout << std::endl;
     }
+    */
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
