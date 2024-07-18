@@ -219,11 +219,13 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
         for (auto WindowStruct: WM.VisibleWindows) { 
             bool Removed = false;
             for (int SplitIndex = 0; SplitIndex < static_cast<int>(WindowStruct->Inequalities.max_size()); SplitIndex++) {
-                std::cout << "Split count: " << WindowStruct->Inequalities[SplitIndex].use_count() << std::endl;
-                if (WindowStruct->Inequalities[SplitIndex].use_count() == 1) {
-                    WindowStruct->Inequalities[SplitIndex] = nullptr;
-                    Removed = true;
-                }
+                if (WindowStruct->Inequalities[SplitIndex] != nullptr) {
+                    std::cout << "Split count: " << WindowStruct->Inequalities[SplitIndex].use_count() << std::endl;
+                    if (WindowStruct->Inequalities[SplitIndex].use_count() == 1) {
+                        WindowStruct->Inequalities[SplitIndex] = nullptr;
+                        Removed = true;
+                    }
+                } 
             }
             if (Removed == true) {
                 std::cout << "Removed split from " << WindowStruct->Window << std::endl;
