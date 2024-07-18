@@ -15,6 +15,18 @@
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 
+enum WindowSegment {
+    LEFT, // Remaining 1/2 middle left
+    RIGHT, // Remaining 1/2 middle right
+    UP, // Top 1/4 of the window
+    DOWN, // Bottom 1/4 of the window
+};
+
+struct Coordinate {
+    float X;
+    float Y;
+};
+
 struct SplitLine {
     float Position;
 };
@@ -37,8 +49,6 @@ WM WM;
 const uint32_t BORDER_WIDTH = 3;
 const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
-
-uint32_t Offset = 0;
 
 void PrintVisibleWindows() {
     std::cout << "Visible Windows: ";
@@ -153,6 +163,38 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Window> Window) {
     std::cout << "Updated Window " << Window->Window << " to current splits, PosX: " << LowerBoundX << ", PosY: " << LowerBoundY << ", Width: " << Width << ", Height: " << Height << std::endl;
 }
 
+
+Coordinate GetCursorPosition() {
+    xcb_query_pointer_reply_t* Position = xcb_query_pointer_reply(WM.Connection, xcb_query_pointer(WM.Connection, WM.Screen->root), nullptr);
+    if (Position) {
+        Coordinate CursorPosition = {};
+        CursorPosition.X = Position->root_x;
+        CursorPosition.Y = Position->root_y;
+        free(Position);
+        return CursorPosition;
+    } else {
+        std::cerr << "Failed to get the cursor position! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
+    xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, Window), NULL);
+    Coordinate CursorPosition = GetCursorPosition();
+    Coordinate AccountOffset = {};
+    AccountOffset.X = CursorPosition.X - WindowGeometry->x;
+    AccountOffset.Y = CursorPosition.Y - WindowGeometry->y;
+
+    float RatioX = AccountOffset.X / WindowGeometry->width;
+    float RatioY = AccountOffset.Y / WindowGeometry->length;
+
+    if (RatioX < 0.5) { // TODO ADD RATIO Y SUPPORT
+        return LEFT;
+    } else {
+        return RIGHT;
+    }
+}
+
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
 
@@ -170,9 +212,17 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 NewWindow->Inequalities = WM.FocusedWindow->Inequalities; // Inherit Inequalities before the new split
                 std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
                 Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0);
-                WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
-                UpdateWindowToCurrentSplits(WM.FocusedWindow);
-                NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
+                WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedWindow->Window);
+
+                if (Section == RIGHT) {
+                    WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
+                    UpdateWindowToCurrentSplits(WM.FocusedWindow);
+                    NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
+                } else if (Section == LEFT) {
+                    WM.FocusedWindow->Inequalities[0] = Split;
+                    UpdateWindowToCurrentSplits(WM.FocusedWindow);
+                    NewWindow->Inequalities[1] = Split;
+                }
             } else {
                 std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
                 exit(EXIT_FAILURE);
@@ -260,7 +310,6 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
     RemoveWindowStructFromWM(Event->window);
 }
-
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"KillActive", []() { if (!(WM.FocusedWindow == nullptr)) { KillWindow(WM.FocusedWindow->Window); } else { std::cerr << "Attempted to kill focused window - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
