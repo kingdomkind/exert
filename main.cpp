@@ -216,6 +216,7 @@ void RemoveWindowStructFromWM(xcb_window_t Window) {
             break;
         }
     }
+    std::cerr << "test" << std::endl;
 
     if (Found == true) {
         std::cout << "Splitline counts: ";
