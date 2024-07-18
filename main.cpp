@@ -15,6 +15,11 @@
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 
+/* TILING BUGS
+
+
+*/
+
 enum WindowSegment {
     LEFT, // Remaining 2/4 middle left
     RIGHT, // Remaining 2/4 middle right
