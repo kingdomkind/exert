@@ -204,6 +204,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         if (CurrentContainer->Parent == nullptr) {
             break;
         }
+        std::cout << "How did we get here?" << std::endl;
         CurrentContainer = CurrentContainer->Parent;
 
         std::shared_ptr<Container> TempContainer = {};
