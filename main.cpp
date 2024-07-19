@@ -106,6 +106,7 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
         while (!Stack.empty()) {
             std::cout << "GetContainerFromWindow Iter" << std::endl;
             std::shared_ptr<Container> CurrentContainer = Stack.top();
+            Stack.pop();
 
             if (CurrentContainer->Direction == NONE) {
                 if (CurrentContainer->Value->Window == Window) {
