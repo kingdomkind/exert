@@ -369,7 +369,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
     if (!(ToBeRemoved->Parent == nullptr)) {
-        /*
+        
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
             ToBeRemoved->Parent->Value = ToBeRemoved->Parent->Right->Value;
         } else {
@@ -379,8 +379,9 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         ToBeRemoved->Parent->Left = nullptr;
         ToBeRemoved->Parent->Right = nullptr;
         ToBeRemoved->Parent->Direction = NONE;
-        */
+        
 
+    /*
         std::shared_ptr<Container> PromotionContainer;
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
             PromotionContainer = ToBeRemoved->Parent->Right;
@@ -392,7 +393,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             ToBeRemoved->Parent->Parent->Left = PromotionContainer;
         } else {
             ToBeRemoved->Parent->Parent->Right = PromotionContainer;
-        }
+        } */
 
         if (WM.FocusedContainer == ToBeRemoved) {
             WM.FocusedContainer = nullptr;
