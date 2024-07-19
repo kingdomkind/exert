@@ -206,7 +206,9 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     // Copy Target Container Properties that we need
     std::shared_ptr<Container> CurrentContainer = {};
-    CurrentContainer->Parent = TargetContainer->Parent;
+    if (TargetContainer->Parent != nullptr) {
+        CurrentContainer->Parent = TargetContainer->Parent;
+    }
 
     std::cout << "Pre-Mid" << std::endl;
 
