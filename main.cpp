@@ -368,6 +368,9 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         ToBeRemoved->Parent->Right = PromotionContainer->Right;
         ToBeRemoved->Parent->Value = PromotionContainer->Value;
 
+        ToBeRemoved->Parent->Left->Parent = ToBeRemoved;
+        ToBeRemoved->Parent->Right->Parent = ToBeRemoved;
+
         if (WM.FocusedContainer == ToBeRemoved) {
             WM.FocusedContainer = nullptr;
             std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
