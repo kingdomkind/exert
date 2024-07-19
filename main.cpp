@@ -335,29 +335,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     WM.FocusedContainer->Left = NewContainer;
                     WM.FocusedContainer->Right = NewFocusedContainer;
                 }
-/*
-                switch (Section) {
-                    case RIGHT: {
-                        WM.FocusedContainer->Right = NewContainer;
-                        WM.FocusedContainer->Left = NewFocusedContainer;
-                        break;
-                    }
-                    case LEFT: {
-                        WM.FocusedContainer->Left = NewContainer;
-                        WM.FocusedContainer->Right = NewFocusedContainer;
-                        break;
-                    }
-                    case DOWN: {
-                        WM.FocusedContainer->Right = NewContainer;
-                        WM.FocusedContainer->Left = NewFocusedContainer;
-                        break;
-                    }
-                    case UP: {
-                        WM.FocusedContainer->Left = NewContainer;
-                        WM.FocusedContainer->Right = NewFocusedContainer;
-                        break;
-                    }
-                } */
+
                 WM.FocusedContainer = NewFocusedContainer;
                 UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
@@ -386,42 +364,40 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_flush(WM.Connection);
 }
 
-void RemoveWindowStructFromWM(xcb_window_t Window) {
-    /* TODO
-    bool Found = false;
-    for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is a Window we manage
-        if (WindowStruct->Window == Window) {
-            Found = true;
-            WM.VisibleWindows.erase(WindowStruct);
-            std::cout << "ERASED! " << Window << std::endl;
-            PrintVisibleWindows();
-            if (WM.FocusedWindow->Window == Window) {
-                WM.FocusedWindow = nullptr;
-                std::cout << "Focused Window was deleted, setting to nullptr" << std::endl;
-            }
-            break;
-        }
-    } */
+void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
-    // TODO! Redo removal checking, previous implementation was inherently flawed and could not work
-    /*
-        The previous idea was that if a splitline was only referenced once, then it was no longer needed as there needed to be atleast two windows referencing it for them to be
-        side by side.
-        This idea worked well in 1 dimension, but moving into 2d with the X and Y that a splitline could be referenced by multiple windows but they could be stacked ontop of eachother.
-        This means that imagining we had a 3x3 grid of windows, if we remove the middle column, the windows on the left and right hand side would not expand towards the middle as their
-        splitlines still have more than 1 reference, as there would be a total of 3 references for each of the split lines.
-    */
+    if (!(ToBeRemoved->Parent == nullptr)) {
+        if (ToBeRemoved->Parent->Left == ToBeRemoved) {
+            ToBeRemoved->Parent->Value = ToBeRemoved->Parent->Right->Value;
+        } else {
+            ToBeRemoved->Parent->Value = ToBeRemoved->Parent->Left->Value;
+        }
+
+        ToBeRemoved->Parent->Left = nullptr;
+        ToBeRemoved->Parent->Right = nullptr;
+        ToBeRemoved->Parent->Direction = NONE;
+
+        if (WM.FocusedContainer == ToBeRemoved) {
+            WM.FocusedContainer = nullptr;
+            std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
+        }
+    } else {
+        WM.RootContainer = nullptr;
+        std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
+    }
+
+    UpdateWindowToCurrentSplits(ToBeRemoved->Parent);
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    RemoveWindowStructFromWM(Event->window);
+    RemoveContainerFromWM(GetContainerFromWindow(Event->window));
 }
 
-void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
-    xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
-    RemoveWindowStructFromWM(Event->window);
-}
+//void OnDestroyNotify(const xcb_generic_event_t* NextEvent) { TODO
+//    xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
+//    RemoveContainerFromWM(Event->window);
+//}
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Attempted to kill focused container - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
@@ -467,7 +443,7 @@ void RunEventLoop() {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
-            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            //case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             default: { break; }
         }
