@@ -68,6 +68,7 @@ void PrintVisibleWindows() {
 
         while (!Stack.empty()) {
             std::shared_ptr<Container> CurrentContainer = Stack.top();
+            Stack.pop();
 
             if (CurrentContainer->Direction == NONE) {
                 std::cout << CurrentContainer->Value->Window;
