@@ -381,9 +381,11 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             } else {
                 ToBeRemoved->Parent->Parent->Right = PromotionContainer;
             }
+            PromotionContainer->Parent = ToBeRemoved->Parent->Parent;
         } else {
             ToBeRemoved->Parent = PromotionContainer;
             WM.RootContainer = PromotionContainer;
+            PromotionContainer->Parent = nullptr;
         }
 
         if (WM.FocusedContainer == ToBeRemoved) {
