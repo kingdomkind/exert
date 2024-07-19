@@ -201,6 +201,8 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
     X = 0; Y = 0; Width = 1280; Height = 800;
+    std::cout << "LIterally nothing can go wrong here" << std::endl;
+
 
     // Copy Target Container Properties that we need
     std::shared_ptr<Container> CurrentContainer = {};
