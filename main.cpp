@@ -221,7 +221,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::cout << "Mid" << std::endl;
 
-    while (!Stack.empty()) {
+    while (Stack.size() > 1) { // Don't iterate over the base container
         std::cout << "We in " << std::endl;
         std::shared_ptr<Container> TopContainer = Stack.top();
         Stack.pop();
@@ -238,10 +238,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
             if (TopContainer->Right == Stack.top()) {
                 Y += Height;
             } 
-        }
-
-        if (Stack.size() == 1) {
-            Stack.pop(); // Don't iterate over the base container
         }
     }
 
