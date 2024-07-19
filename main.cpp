@@ -200,51 +200,41 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         exit(EXIT_FAILURE);
     }
 
-    std::stack<std::shared_ptr<Container>> Stack;
+    std::stack<std::shared_ptr<Container>*> Stack;
     uint32_t X, Y, Width, Height;
     X = 0; Y = 0; Width = 1280; Height = 800;
     std::cout << "LIterally nothing can go wrong here" << std::endl;
 
-
     // Copy Target Container Properties that we need
-    std::shared_ptr<Container> CurrentContainer = {};
-    CurrentContainer->Parent = TargetContainer->Parent;
-
+    std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     std::cout << "Pre-Mid" << std::endl;
 
-
     while (true) {
-        if (CurrentContainer->Parent == nullptr) {
+        if (CurrentContainer->get()->Parent == nullptr) {
             std::cout << "We break" << std::endl;
             break;
         }
         std::cout << "Achievement get: how did we get here?" << std::endl;
-        CurrentContainer = CurrentContainer->Parent;
-
-        std::shared_ptr<Container> TempContainer = {};
-        TempContainer->Parent = CurrentContainer->Parent;
-        TempContainer->Left = CurrentContainer->Left;
-        TempContainer->Right = CurrentContainer->Right;
-
-        Stack.push(TempContainer);
+        CurrentContainer = &CurrentContainer->get()->Parent;
+        Stack.push(CurrentContainer);
     }
 
     std::cout << "Mid" << std::endl;
 
     while (!Stack.empty()) {
-        std::shared_ptr<Container> TopContainer = Stack.top();
+        std::shared_ptr<Container> TopContainer = *Stack.top();
         Stack.pop();
 
         if (TopContainer->Direction == VERTICAL) {
             Width = Width * 0.5;
 
-            if (TopContainer->Right == Stack.top()) {
+            if (TopContainer->Right == *Stack.top()) {
                 X += Width;
             }
         } else {
             Height = Height * 0.5;
 
-            if (TopContainer->Right == Stack.top()) {
+            if (TopContainer->Right == *Stack.top()) {
                 Y += Height;
             } 
         }
