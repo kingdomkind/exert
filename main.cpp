@@ -68,6 +68,7 @@ void PrintVisibleWindows() {
         Stack.push(WM.RootContainer);
 
         while (!Stack.empty()) {
+            std::cout << "Visible Winodws Iter" << std::endl;
             std::shared_ptr<Container> CurrentContainer = Stack.top();
             Stack.pop();
 
@@ -103,6 +104,7 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
         Stack.push(WM.RootContainer);
 
         while (!Stack.empty()) {
+            std::cout << "GetContainerFromWindow Iter" << std::endl;
             std::shared_ptr<Container> CurrentContainer = Stack.top();
 
             if (CurrentContainer->Direction == NONE) {
