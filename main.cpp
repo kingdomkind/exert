@@ -77,6 +77,7 @@ void PrintVisibleWindows() {
             std::cout << "Parent: " << CurrentContainer->Parent << std::endl;
             std::cout << "Left Pointer: " << CurrentContainer->Left << std::endl;
             std::cout << "Right Pointer: " << CurrentContainer->Left << std::endl; 
+            std::cout << "\n" << std::endl;
 
             if (CurrentContainer->Right != nullptr) {
                 Stack.push(CurrentContainer->Right);
