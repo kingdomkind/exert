@@ -91,7 +91,7 @@ void PrintVisibleWindows() {
         }
     } else {
         std::cerr << "Could not print windows as there is no root container! [EXIT]" << std::endl;
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
     }
     std::cout << std::endl;
     std::cout << "Finished window loop, you're safe boys" << std::endl;
@@ -129,7 +129,8 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
         }
     } else {
         std::cerr << "Could not get container from window as there is no root container! [EXIT]" << std::endl;
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
+        return  nullptr;
     }
 
     std::cerr << "Could not find the specified container for window: " << Window << std::endl;
@@ -382,7 +383,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             WM.FocusedContainer = nullptr;
             std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
         }
-        
+
         UpdateWindowToCurrentSplits(ToBeRemoved->Parent);
     } else {
         WM.RootContainer = nullptr;
@@ -398,10 +399,13 @@ void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     }
 }
 
-//void OnDestroyNotify(const xcb_generic_event_t* NextEvent) { TODO
-//    xcb_destroy_notify_event_t* Event = (xcb_destroy_notify_event_t*)NextEvent;
-//    RemoveContainerFromWM(Event->window);
-//}
+void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+    auto Result = GetContainerFromWindow(Event->window);
+    if (Result != nullptr) {
+        RemoveContainerFromWM(Result);
+    }
+}
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Attempted to kill focused container - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
@@ -447,7 +451,7 @@ void RunEventLoop() {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
-            //case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             default: { break; }
         }
