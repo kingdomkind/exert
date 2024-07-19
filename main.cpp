@@ -132,8 +132,9 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
         exit(EXIT_FAILURE);
     }
 
-    std::cerr << "Could not find the specified container for window: " << Window << " [EXIT] " << std::endl;
-    exit(EXIT_FAILURE);
+    std::cerr << "Could not find the specified container for window: " << Window << std::endl;
+    //exit(EXIT_FAILURE);
+    return nullptr;
 }
 
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
@@ -391,7 +392,10 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    //RemoveContainerFromWM(GetContainerFromWindow(Event->window));
+    auto Result = GetContainerFromWindow(Event->window);
+    if (Result != nullptr) {
+        RemoveContainerFromWM(Result);
+    }
 }
 
 //void OnDestroyNotify(const xcb_generic_event_t* NextEvent) { TODO
