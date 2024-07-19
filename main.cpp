@@ -213,6 +213,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     while (true) {
         Stack.push(*CurrentContainer);
+        std::cout << "Pushed " << CurrentContainer->get() << " onto the stack" << std::endl;
         if (CurrentContainer->get()->Parent == nullptr) { break; }
         CurrentContainer = &CurrentContainer->get()->Parent;
     }
