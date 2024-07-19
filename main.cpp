@@ -224,7 +224,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     }
 
     while (Stack.size() > 1) { // Don't iterate over the base container
-        std::cout << "We in " << std::endl;
         std::shared_ptr<Container> TopContainer = Stack.top();
         Stack.pop();
 
@@ -241,6 +240,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
                 Y += Height;
             } 
         }
+        std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
     }
 
     uint32_t Parameters[] = {X, Y, Width, Height, BORDER_WIDTH};
@@ -381,7 +381,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         }
 
         std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(WM.RootContainer);
+        Stack.push(ToBeRemoved->Parent);
 
         while (!Stack.empty()) {
             std::shared_ptr<Container> CurrentContainer = Stack.top();
