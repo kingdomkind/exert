@@ -209,17 +209,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     X = 0; Y = 0; Width = 1280; Height = 800;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
-    /*
-    Stack.push(*CurrentContainer);
-
-    while (true) {
-        if (CurrentContainer->get()->Parent == nullptr) {
-            break;
-        }
-        CurrentContainer = &CurrentContainer->get()->Parent;
-        Stack.push(*CurrentContainer);
-    } */
-
     while (true) {
         Stack.push(*CurrentContainer);
         if (CurrentContainer->get()->Parent == nullptr) { break; }
@@ -239,7 +228,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         } else {
             Height = Height * 0.5;
 
-            if (TopContainer->Left == Stack.top()) {
+            if (TopContainer->Right == Stack.top()) {
                 Y += Height;
             } 
         }
