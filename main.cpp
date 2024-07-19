@@ -365,6 +365,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             PromotionContainer = ToBeRemoved->Parent->Left;
         }
 
+        /*
         ToBeRemoved->Parent->Direction = PromotionContainer->Direction;
         ToBeRemoved->Parent->Left = PromotionContainer->Left;
         ToBeRemoved->Parent->Right = PromotionContainer->Right;
@@ -372,6 +373,18 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
         ToBeRemoved->Parent->Left->Parent = ToBeRemoved->Parent;
         ToBeRemoved->Parent->Right->Parent = ToBeRemoved->Parent;
+        */
+
+        if (ToBeRemoved->Parent->Parent != nullptr) {
+            if (ToBeRemoved->Parent->Parent->Left == ToBeRemoved->Parent ) {
+                ToBeRemoved->Parent->Parent->Left = PromotionContainer;
+            } else {
+                ToBeRemoved->Parent->Parent->Right = PromotionContainer;
+            }
+        } else {
+            ToBeRemoved->Parent = PromotionContainer;
+            WM.RootContainer = PromotionContainer;
+        }
 
         if (WM.FocusedContainer == ToBeRemoved) {
             WM.FocusedContainer = nullptr;
@@ -382,7 +395,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         PrintVisibleWindows();
 
         std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(ToBeRemoved->Parent);
+        Stack.push(PromotionContainer);
 
         while (!Stack.empty()) {
             std::shared_ptr<Container> CurrentContainer = Stack.top();
