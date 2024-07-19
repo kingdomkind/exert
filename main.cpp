@@ -39,11 +39,11 @@ struct Window {
 struct Container { // If Direction is None it will have a Value, otherwise it will have no value
     Split Direction;
     
-    std::shared_ptr<Container> Parent;
-    std::shared_ptr<Container> Left;
-    std::shared_ptr<Container> Right;
+    std::shared_ptr<Container> Parent = nullptr;
+    std::shared_ptr<Container> Left = nullptr;
+    std::shared_ptr<Container> Right = nullptr;
 
-    std::shared_ptr<Window> Value;
+    std::shared_ptr<Window> Value = nullptr;
 };
 
 struct WM {
