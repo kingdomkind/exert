@@ -381,7 +381,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         }
 
         std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(ToBeRemoved->Parent);
+        Stack.push(WM.RootContainer);
 
         while (!Stack.empty()) {
             std::shared_ptr<Container> CurrentContainer = Stack.top();
