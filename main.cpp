@@ -61,31 +61,28 @@ const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 void PrintVisibleWindows() {
-    std::cout << "Visible Windows: ";
+    std::cout << "Visible Windows: \n" << std::endl;
+
     if (!(WM.RootContainer == nullptr)) {
         std::stack<std::shared_ptr<Container>> Stack;
         Stack.push(WM.RootContainer);
 
         while (!Stack.empty()) {
-            std::cout << "Visible Winodws Iter" << std::endl;
             std::shared_ptr<Container> CurrentContainer = Stack.top();
             Stack.pop();
 
-            if (CurrentContainer->Direction == NONE) {
-                std::cout << CurrentContainer->Value->Window << " ";
-            } else {
-                if (CurrentContainer->Right != nullptr) {
-                    Stack.push(CurrentContainer->Right);
-                } else {
-                    std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
-                if (CurrentContainer->Left != nullptr) {
-                    Stack.push(CurrentContainer->Left);
-                } else {
-                    std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
+            std::cout << "Container: " << CurrentContainer << std::endl;
+            std::cout << "Window: " << CurrentContainer->Value << std::endl;
+            std::cout << "Direction: " << CurrentContainer->Direction << std::endl;
+            std::cout << "Parent: " << CurrentContainer->Parent << std::endl;
+            std::cout << "Left Pointer: " << CurrentContainer->Left << std::endl;
+            std::cout << "Right Pointer: " << CurrentContainer->Left << std::endl; 
+
+            if (CurrentContainer->Right != nullptr) {
+                Stack.push(CurrentContainer->Right);
+            }
+            if (CurrentContainer->Left != nullptr) {
+                Stack.push(CurrentContainer->Left);
             }
         }
     } else {
@@ -310,10 +307,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
                 WM.FocusedContainer->Value = nullptr;
 
-                if (Section == UP) {
-                    std::cout << "It's up you nincompoop" << std::endl;
-                }
-
                 if (Section == UP || Section == DOWN) {
                     WM.FocusedContainer->Direction = HORIZONTAL;
                 } else {
@@ -375,6 +368,9 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             WM.FocusedContainer = nullptr;
             std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
         }
+
+        std::cout << "After reconfigurement" << std::endl;
+        PrintVisibleWindows();
 
         std::stack<std::shared_ptr<Container>> Stack;
         Stack.push(ToBeRemoved->Parent);
