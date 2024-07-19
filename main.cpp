@@ -312,6 +312,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 NewFocusedContainer->Parent = nullptr;
                 NewFocusedContainer->Value = FocusedWindow;
                 NewFocusedContainer->Parent = WM.FocusedContainer;
+                NewContainer->Parent = WM.FocusedContainer;
 
                 WM.FocusedContainer->Value = nullptr;
 
@@ -321,28 +322,14 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     WM.FocusedContainer->Direction = VERTICAL;
                 }
 
-                switch (Section) {
-                    case RIGHT: {
-                        WM.FocusedContainer->Right = NewContainer;
-                        WM.FocusedContainer->Left = NewFocusedContainer;
-                        break;
-                    }
-                    case LEFT: {
-                        WM.FocusedContainer->Left = NewContainer;
-                        WM.FocusedContainer->Right = NewFocusedContainer;
-                        break;
-                    }
-                    case DOWN: {
-                        WM.FocusedContainer->Right = NewContainer;
-                        WM.FocusedContainer->Left = NewFocusedContainer;
-                        break;
-                    }
-                    case UP: {
-                   WM.FocusedContainer->Left = NewContainer;
-                        WM.FocusedContainer->Right = NewFocusedContainer;
-                        break;
-                    }
+                if (Section == RIGHT || Section == DOWN) {
+                    WM.FocusedContainer->Right = NewContainer;
+                    WM.FocusedContainer->Left = NewFocusedContainer;
+                } else {
+                    WM.FocusedContainer->Left = NewContainer;
+                    WM.FocusedContainer->Right = NewFocusedContainer;
                 }
+
                 WM.FocusedContainer = NewFocusedContainer;
                 UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
@@ -364,8 +351,8 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
     UpdateWindowToCurrentSplits(NewContainer);
 
-    std::cout << "ADDED! " << Event->window << std::endl;  // FLAG
-    //PrintVisibleWindows();
+    std::cout << "ADDED! " << Event->window << std::endl;
+    PrintVisibleWindows();
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
