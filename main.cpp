@@ -61,7 +61,6 @@ const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 void PrintVisibleWindows() {
-    std::cout << "Started window loop" << std::endl;
     std::cout << "Visible Windows: ";
     if (!(WM.RootContainer == nullptr)) {
         std::stack<std::shared_ptr<Container>> Stack;
@@ -94,17 +93,14 @@ void PrintVisibleWindows() {
         //exit(EXIT_FAILURE);
     }
     std::cout << std::endl;
-    std::cout << "Finished window loop, you're safe boys" << std::endl;
 }
 
 std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
-
     if (!(WM.RootContainer == nullptr)) {
         std::stack<std::shared_ptr<Container>> Stack;
         Stack.push(WM.RootContainer);
 
         while (!Stack.empty()) {
-            std::cout << "GetContainerFromWindow Iter" << std::endl;
             std::shared_ptr<Container> CurrentContainer = Stack.top();
             Stack.pop();
 
@@ -213,6 +209,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     X = 0; Y = 0; Width = 1280; Height = 800;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
+    /*
     Stack.push(*CurrentContainer);
 
     while (true) {
@@ -221,6 +218,12 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         }
         CurrentContainer = &CurrentContainer->get()->Parent;
         Stack.push(*CurrentContainer);
+    } */
+
+    while (true) {
+        Stack.push(*CurrentContainer);
+        if (CurrentContainer->get()->Parent == nullptr) { break; }
+        CurrentContainer = &CurrentContainer->get()->Parent;
     }
 
     while (Stack.size() > 1) { // Don't iterate over the base container
