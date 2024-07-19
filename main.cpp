@@ -211,23 +211,17 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
     X = 0; Y = 0; Width = 1280; Height = 800;
-    std::cout << "LIterally nothing can go wrong here" << std::endl;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     Stack.push(*CurrentContainer);
-    std::cout << "Pre-Mid" << std::endl;
 
     while (true) {
         if (CurrentContainer->get()->Parent == nullptr) {
-            std::cout << "We break" << std::endl;
             break;
         }
-        std::cout << "Achievement get: how did we get here?" << std::endl;
         CurrentContainer = &CurrentContainer->get()->Parent;
         Stack.push(*CurrentContainer);
     }
-
-    std::cout << "Mid" << std::endl;
 
     while (Stack.size() > 1) { // Don't iterate over the base container
         std::cout << "We in " << std::endl;
