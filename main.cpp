@@ -72,7 +72,11 @@ void PrintVisibleWindows() {
             Stack.pop();
 
             std::cout << "Container: " << CurrentContainer << std::endl;
-            std::cout << "Window: " << CurrentContainer->Value->Window << std::endl;
+            if (CurrentContainer->Value != nullptr) {
+                std::cout << "Window: " << CurrentContainer->Value->Window << std::endl;
+            } else {
+                std::cout << "Window: " << "No Associated Window" << std::endl;
+            }
             std::cout << "Direction: " << CurrentContainer->Direction << std::endl;
             std::cout << "Parent: " << CurrentContainer->Parent << std::endl;
             std::cout << "Left Pointer: " << CurrentContainer->Left << std::endl;
