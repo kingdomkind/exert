@@ -207,6 +207,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     // Copy Target Container Properties that we need
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
+    Stack.push(*CurrentContainer);
     std::cout << "Pre-Mid" << std::endl;
 
     while (true) {
@@ -237,6 +238,10 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
             if (TopContainer->Right == Stack.top()) {
                 Y += Height;
             } 
+        }
+
+        if (Stack.size() == 1) {
+            Stack.pop(); // Don't iterate over the base container
         }
     }
 
