@@ -7,19 +7,19 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
+#include <stack>
 #include <unordered_map>
-#include <unordered_set>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 
-/* TILING BUGS
-
-
-*/
-
+enum Split {
+    VERTICAL,
+    HORIZONTAL,
+    NONE,
+};
 enum WindowSegment {
     LEFT, // Remaining 2/4 middle left
     RIGHT, // Remaining 2/4 middle right
@@ -32,21 +32,26 @@ struct Coordinate {
     float Y;
 };
 
-struct SplitLine {
-    float Position;
-};
-
 struct Window {
     xcb_window_t Window;
-    std::array<std::shared_ptr<SplitLine>, 4> Inequalities; // 0 is lower x bound, 1 is upper x bound, 2 is lower y bound, 3 is upper y bound
+};
+
+struct Container { // If Direction is None it will have a Value, otherwise it will have no value
+    Split Direction;
+    
+    std::shared_ptr<Container> Parent;
+    std::shared_ptr<Container> Left;
+    std::shared_ptr<Container> Right;
+
+    std::shared_ptr<Window> Value;
 };
 
 struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
-    std::shared_ptr<Window> FocusedWindow;
-    std::unordered_set<std::shared_ptr<Window>> VisibleWindows;
+    std::shared_ptr<Container> FocusedContainer;
+    std::shared_ptr<Container> RootContainer;
 };
 
 WM WM;
@@ -57,19 +62,71 @@ const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 void PrintVisibleWindows() {
     std::cout << "Visible Windows: ";
-    for (auto WindowStruct: WM.VisibleWindows) {
-        std::cout << WindowStruct->Window << " ";
+    if (!(WM.RootContainer == nullptr)) {
+        std::stack<std::shared_ptr<Container>> Stack;
+        Stack.push(WM.RootContainer);
+
+        while (!Stack.empty()) {
+            std::shared_ptr<Container> CurrentContainer = Stack.top();
+
+            if (CurrentContainer->Direction == NONE) {
+                std::cout << CurrentContainer->Value->Window;
+            } else {
+                if (CurrentContainer->Right != nullptr) {
+                    Stack.push(CurrentContainer->Right);
+                } else {
+                    std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                if (CurrentContainer->Left != nullptr) {
+                    Stack.push(CurrentContainer->Left);
+                } else {
+                    std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    } else {
+        std::cerr << "Could not print windows as there is no root container! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
     }
     std::cout << std::endl;
 }
 
-std::shared_ptr<Window> GetWindowStructFromWindow(xcb_window_t Window) {
-    for (auto WindowStruct: WM.VisibleWindows) {
-        if (WindowStruct->Window == Window) {
-            return WindowStruct;
+std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
+
+    if (!(WM.RootContainer == nullptr)) {
+        std::stack<std::shared_ptr<Container>> Stack;
+        Stack.push(WM.RootContainer);
+
+        while (!Stack.empty()) {
+            std::shared_ptr<Container> CurrentContainer = Stack.top();
+
+            if (CurrentContainer->Direction == NONE) {
+                if (CurrentContainer->Value->Window == Window) {
+                    return CurrentContainer;
+                }
+            } else {
+                if (CurrentContainer->Right != nullptr) {
+                    Stack.push(CurrentContainer->Right);
+                } else {
+                    std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                if (CurrentContainer->Left != nullptr) {
+                    Stack.push(CurrentContainer->Left);
+                } else {
+                    std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
+    } else {
+        std::cerr << "Could not get container from window as there is no root container! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
     }
-    std::cerr << "Could not find the specified window struct for window: " << Window << " [EXIT] " << std::endl;
+
+    std::cerr << "Could not find the specified container for window: " << Window << " [EXIT] " << std::endl;
     exit(EXIT_FAILURE);
 }
 
@@ -77,13 +134,13 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
 
     if (Event->event != 0) {
-        if (WM.FocusedWindow != nullptr) {
-            xcb_change_window_attributes(WM.Connection, WM.FocusedWindow->Window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
+        if (WM.FocusedContainer != nullptr) {
+            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
         }
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
-        WM.FocusedWindow = GetWindowStructFromWindow(Event->event);
-        xcb_change_window_attributes(WM.Connection, WM.FocusedWindow->Window, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
+        WM.FocusedContainer = GetContainerFromWindow(Event->event);
+        xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
         xcb_flush(WM.Connection);
     } else {
         std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
@@ -134,38 +191,52 @@ void StartupWM() {
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
-void UpdateWindowToCurrentSplits(std::shared_ptr<Window> Window) {
-    uint32_t Width, Height, LowerBoundX, UpperBoundX, LowerBoundY, UpperBoundY;
+void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
+    std::stack<std::shared_ptr<Container>> Stack;
+    uint32_t X, Y, Width, Height;
+    X = 0; Y = 0; Width = 1280; Height = 800;
 
-    // TODO, GET THE DEFAULT VALUE DYNAMICALLY (IT'LL BE A SCALAR VALUE ANYWAYS)
-    if (Window->Inequalities[0] == nullptr) {
-        LowerBoundX = 0;
-    } else {
-        LowerBoundX = Window->Inequalities[0]->Position;
-    }
-    if (Window->Inequalities[1] == nullptr) {
-        UpperBoundX = 1280;
-    } else {
-        UpperBoundX = Window->Inequalities[1]->Position;
-    }
-    if (Window->Inequalities[2] == nullptr) {
-        LowerBoundY = 0;
-    } else {
-        LowerBoundY = Window->Inequalities[2]->Position;
-    }
-    if (Window->Inequalities[3] == nullptr) {
-        UpperBoundY = 800;
-    } else {
-        UpperBoundY = Window->Inequalities[3]->Position;
+    // Copy Target Container Properties that we need
+    std::shared_ptr<Container> CurrentContainer = {};
+    CurrentContainer->Parent = TargetContainer->Parent;
+
+    while (true) {
+        if (CurrentContainer->Parent == nullptr) {
+            break;
+        }
+        CurrentContainer = CurrentContainer->Parent;
+
+        std::shared_ptr<Container> TempContainer = {};
+        TempContainer->Parent = CurrentContainer->Parent;
+        TempContainer->Left = CurrentContainer->Left;
+        TempContainer->Right = CurrentContainer->Right;
+
+        Stack.push(TempContainer);
     }
 
-    Width = UpperBoundX - LowerBoundX;
-    Height = UpperBoundY - LowerBoundY;
+    while (!Stack.empty()) {
+        std::shared_ptr<Container> TopContainer = Stack.top();
+        Stack.pop();
 
-    uint32_t Parameters[] = {LowerBoundX, LowerBoundY, Width, Height, BORDER_WIDTH};
-    xcb_configure_window(WM.Connection, Window->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
+        if (TopContainer->Direction == VERTICAL) {
+            Width = Width * 0.5;
+
+            if (TopContainer->Right == Stack.top()) {
+                X += Width;
+            }
+        } else {
+            Height = Height * 0.5;
+
+            if (TopContainer->Right == Stack.top()) {
+                Y += Height;
+            } 
+        }
+    }
+
+    uint32_t Parameters[] = {X, Y, Width, Height, BORDER_WIDTH};
+    xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
     xcb_flush(WM.Connection);
-    std::cout << "Updated Window " << Window->Window << " to current splits, PosX: " << LowerBoundX << ", PosY: " << LowerBoundY << ", Width: " << Width << ", Height: " << Height << std::endl;
+    std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
 }
 
 
@@ -215,68 +286,70 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
     NewWindow->Window = Event->window;
 
-    if (!(WM.VisibleWindows.size() == 0)) { // Need to create a split, this isn't the first window opened
-        if (!(WM.FocusedWindow == nullptr)) { // Create window size & splits based on the focused window
-            // Testing, always opens windows on the left across x axis
-            xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedWindow->Window), NULL);
+    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
+    NewContainer->Direction = NONE;
+    NewContainer->Parent = nullptr;
+    NewContainer->Value = NewWindow;
+
+    if (!(WM.RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
+        if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
+            xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
 
             if (FocusedWindowGeometry) {
-                NewWindow->Inequalities = WM.FocusedWindow->Inequalities; // Inherit Inequalities before the new split
-                std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
-                WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedWindow->Window);
+                std::shared_ptr<Window> FocusedWindow = WM.FocusedContainer->Value;
+                WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
 
-                if (Section == RIGHT || Section == LEFT) {
-                    Split->Position = FocusedWindowGeometry->x + (FocusedWindowGeometry->width / 2.0); // Split is x axis
-                    std::cout << "Set split pos to x axis" << std::endl;
+                std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
+                NewFocusedContainer->Direction = NONE;
+                NewFocusedContainer->Parent = nullptr;
+                NewFocusedContainer->Value = FocusedWindow;
+                NewFocusedContainer->Parent = WM.FocusedContainer;
+
+                WM.FocusedContainer->Value = nullptr;
+
+                if (Section == UP || Section == DOWN) {
+                    WM.FocusedContainer->Direction = HORIZONTAL;
                 } else {
-                    Split->Position = FocusedWindowGeometry->y + (FocusedWindowGeometry->height / 2.0); // Split is in y axis
-                    std::cout << "Set split pos to y axis" << std::endl;
+                    WM.FocusedContainer->Direction = VERTICAL;
                 }
 
                 switch (Section) {
                     case RIGHT: {
-                        std::cout << "Setting split to Right" << std::endl;
-                        WM.FocusedWindow->Inequalities[1] = Split; // 1 Means X upper bound
-                        NewWindow->Inequalities[0] = Split; // 0 Means X lower bound
+                        WM.FocusedContainer->Right = NewContainer;
                         break;
                     }
                     case LEFT: {
-                        std::cout << "Setting split to Left" << std::endl;
-                        WM.FocusedWindow->Inequalities[0] = Split;
-                        NewWindow->Inequalities[1] = Split;
+                        WM.FocusedContainer->Left = NewContainer;
                         break;
                     }
                     case DOWN: {
-                        std::cout << "Setting split to Down" << std::endl;
-                        WM.FocusedWindow->Inequalities[3] = Split; // 3 Means Y upper bound
-                        NewWindow->Inequalities[2] = Split; // 0 Means Y lower bound
+                        WM.FocusedContainer->Right = NewContainer;
                         break;
                     }
                     case UP: {
-                        std::cout << "Setting split to Up" << std::endl;
-                        WM.FocusedWindow->Inequalities[2] = Split;
-                        NewWindow->Inequalities[3] = Split;
+                        WM.FocusedContainer->Left = NewContainer;
                         break;
                     }
                 }
-                UpdateWindowToCurrentSplits(WM.FocusedWindow);
+                WM.FocusedContainer = NewFocusedContainer;
+                UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
             } else {
-                std::cerr << "Focused window is " << WM.FocusedWindow->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
+                std::cerr << "Focused window is " << WM.FocusedContainer->Value->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
                 exit(EXIT_FAILURE);
             }
         } else {
             std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
             exit(EXIT_FAILURE);
         }
+    } else { // First window opened
+        WM.RootContainer = NewContainer;
     }
 
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
-    UpdateWindowToCurrentSplits(NewWindow);
-
-    WM.VisibleWindows.insert(NewWindow);
+    UpdateWindowToCurrentSplits(NewContainer);
 
     std::cout << "ADDED! " << Event->window << std::endl;  // FLAG
     PrintVisibleWindows();
@@ -286,75 +359,30 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 }
 
 void RemoveWindowStructFromWM(xcb_window_t Window) {
+    /* TODO
     bool Found = false;
-    float ReplaceX = -1;
-    float ReplaceY = -1;
     for (auto WindowStruct: WM.VisibleWindows) { // This inherently checks that the Window is a Window we manage
         if (WindowStruct->Window == Window) {
             Found = true;
-            
-            // Get X average, or if any is nullptr then remain -1 to represent nullptr
-            if (!((WindowStruct->Inequalities[0] == nullptr) || (WindowStruct->Inequalities[1] == nullptr))) {
-                ReplaceX = (WindowStruct->Inequalities[0]->Position + WindowStruct->Inequalities[1]->Position) / 2.0;
-            }
-
-            // Get Y average
-            if (!((WindowStruct->Inequalities[2] == nullptr) || (WindowStruct->Inequalities[3] == nullptr))) {
-                ReplaceX = (WindowStruct->Inequalities[2]->Position + WindowStruct->Inequalities[3]->Position) / 2.0;
-            }
-
             WM.VisibleWindows.erase(WindowStruct);
-            
             std::cout << "ERASED! " << Window << std::endl;
             PrintVisibleWindows();
-
             if (WM.FocusedWindow->Window == Window) {
                 WM.FocusedWindow = nullptr;
                 std::cout << "Focused Window was deleted, setting to nullptr" << std::endl;
             }
             break;
         }
-    }
+    } */
 
-    if (Found == true) {
-        std::shared_ptr<SplitLine> Split = std::make_shared<SplitLine>();
-
-        for (auto WindowStruct: WM.VisibleWindows) { 
-            bool Removed = false;
-            for (int SplitIndex = 0; SplitIndex < static_cast<int>(WindowStruct->Inequalities.max_size()); SplitIndex++) {
-                if (WindowStruct->Inequalities[SplitIndex] != nullptr) {
-                    std::cout << "Split count: " << WindowStruct->Inequalities[SplitIndex].use_count() << std::endl;
-                    if (WindowStruct->Inequalities[SplitIndex].use_count() == 1) {
-                        if (SplitIndex == 0 || SplitIndex == 1) {
-                            Split->Position = ReplaceX; // X splitline
-                            if (ReplaceX == -1) {
-                                WindowStruct->Inequalities[SplitIndex] = nullptr;
-                                std::cout << "Removed X split from " << WindowStruct->Window << std::endl;
-                            } else {
-                                std::cout << "Removed X split from " << WindowStruct->Window << "but also added a new one so 2 windows can converge in the middle" << std::endl;
-                                WindowStruct->Inequalities[SplitIndex] = Split;
-                            }
-                        } else {
-                            Split->Position = ReplaceY; // X splitline
-                            if (ReplaceY == -1) {
-                                WindowStruct->Inequalities[SplitIndex] = nullptr;
-                                std::cout << "Removed Y split from " << WindowStruct->Window << std::endl;
-                            } else {
-                                std::cout << "Removed Y split from " << WindowStruct->Window << "but also added a new one so 2 windows can converge in the middle" << std::endl;
-                                WindowStruct->Inequalities[SplitIndex] = Split;
-                            }
-                        }
-
-                        Removed = true;
-                    }
-                } 
-            }
-            if (Removed == true) {
-                std::cout << "Removed split from " << WindowStruct->Window << std::endl;
-                UpdateWindowToCurrentSplits(WindowStruct);
-            }
-        }
-    }
+    // TODO! Redo removal checking, previous implementation was inherently flawed and could not work
+    /*
+        The previous idea was that if a splitline was only referenced once, then it was no longer needed as there needed to be atleast two windows referencing it for them to be
+        side by side.
+        This idea worked well in 1 dimension, but moving into 2d with the X and Y that a splitline could be referenced by multiple windows but they could be stacked ontop of eachother.
+        This means that imagining we had a 3x3 grid of windows, if we remove the middle column, the windows on the left and right hand side would not expand towards the middle as their
+        splitlines still have more than 1 reference, as there would be a total of 3 references for each of the split lines.
+    */
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
@@ -368,7 +396,7 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
 }
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { if (!(WM.FocusedWindow == nullptr)) { KillWindow(WM.FocusedWindow->Window); } else { std::cerr << "Attempted to kill focused window - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
+    {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Attempted to kill focused container - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
     {"ExitWM", []() { ExitWM(); }},
 };
 
