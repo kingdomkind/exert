@@ -206,6 +206,9 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::shared_ptr<Container> CurrentContainer = {};
     CurrentContainer->Parent = TargetContainer->Parent;
 
+    std::cout << "Pre-Mid" << std::endl;
+
+
     while (true) {
         if (CurrentContainer->Parent == nullptr) {
             break;
