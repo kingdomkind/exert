@@ -329,7 +329,29 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     WM.FocusedContainer->Left = NewContainer;
                     WM.FocusedContainer->Right = NewFocusedContainer;
                 }
-
+/*
+                switch (Section) {
+                    case RIGHT: {
+                        WM.FocusedContainer->Right = NewContainer;
+                        WM.FocusedContainer->Left = NewFocusedContainer;
+                        break;
+                    }
+                    case LEFT: {
+                        WM.FocusedContainer->Left = NewContainer;
+                        WM.FocusedContainer->Right = NewFocusedContainer;
+                        break;
+                    }
+                    case DOWN: {
+                        WM.FocusedContainer->Right = NewContainer;
+                        WM.FocusedContainer->Left = NewFocusedContainer;
+                        break;
+                    }
+                    case UP: {
+                        WM.FocusedContainer->Left = NewContainer;
+                        WM.FocusedContainer->Right = NewFocusedContainer;
+                        break;
+                    }
+                } */
                 WM.FocusedContainer = NewFocusedContainer;
                 UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
@@ -352,7 +374,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     UpdateWindowToCurrentSplits(NewContainer);
 
     std::cout << "ADDED! " << Event->window << std::endl;
-    PrintVisibleWindows();
+    //PrintVisibleWindows();
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
