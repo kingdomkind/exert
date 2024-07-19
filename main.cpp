@@ -322,6 +322,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     WM.FocusedContainer->Right = NewFocusedContainer;
                 }
 
+                WM.FocusedContainer.reset();
                 WM.FocusedContainer = NewFocusedContainer;
                 UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
