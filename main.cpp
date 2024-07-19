@@ -395,7 +395,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         PrintVisibleWindows();
 
         std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(PromotionContainer);
+        Stack.push(ToBeRemoved->Parent);
 
         while (!Stack.empty()) {
             std::shared_ptr<Container> CurrentContainer = Stack.top();
