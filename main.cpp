@@ -318,13 +318,17 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
                 WM.FocusedContainer->Value = nullptr;
 
+                if (Section == UP) {
+                    std::cout << "It's up you nincompoop" << std::endl;
+                }
+
                 if (Section == UP || Section == DOWN) {
                     WM.FocusedContainer->Direction = HORIZONTAL;
                 } else {
                     WM.FocusedContainer->Direction = VERTICAL;
                 }
 
-                if (Section == RIGHT || Section == UP) {
+                if (Section == RIGHT || Section == DOWN) {
                     WM.FocusedContainer->Right = NewContainer;
                     WM.FocusedContainer->Left = NewFocusedContainer;
                 } else {
