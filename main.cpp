@@ -244,6 +244,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
     xcb_flush(WM.Connection);
     std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
+    exit(EXIT_FAILURE);
 }
 
 
