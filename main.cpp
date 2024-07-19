@@ -355,6 +355,8 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
+    std::cout << "Removing container from WM" << std::endl;
+
     if (!(ToBeRemoved->Parent == nullptr)) {
         std::shared_ptr<Container> PromotionContainer;
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
