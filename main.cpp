@@ -61,6 +61,7 @@ const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 void PrintVisibleWindows() {
+    std::cout << "Started window loop" << std::endl;
     std::cout << "Visible Windows: ";
     if (!(WM.RootContainer == nullptr)) {
         std::stack<std::shared_ptr<Container>> Stack;
@@ -71,7 +72,7 @@ void PrintVisibleWindows() {
             Stack.pop();
 
             if (CurrentContainer->Direction == NONE) {
-                std::cout << CurrentContainer->Value->Window;
+                std::cout << CurrentContainer->Value->Window << " ";
             } else {
                 if (CurrentContainer->Right != nullptr) {
                     Stack.push(CurrentContainer->Right);
@@ -92,6 +93,7 @@ void PrintVisibleWindows() {
         exit(EXIT_FAILURE);
     }
     std::cout << std::endl;
+    std::cout << "Finished window loop, you're safe boys" << std::endl;
 }
 
 std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
