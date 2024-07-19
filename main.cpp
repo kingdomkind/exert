@@ -382,12 +382,12 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             WM.FocusedContainer = nullptr;
             std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
         }
+        
+        UpdateWindowToCurrentSplits(ToBeRemoved->Parent);
     } else {
         WM.RootContainer = nullptr;
         std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
     }
-
-    UpdateWindowToCurrentSplits(ToBeRemoved->Parent);
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
