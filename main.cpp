@@ -324,18 +324,22 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 switch (Section) {
                     case RIGHT: {
                         WM.FocusedContainer->Right = NewContainer;
+                        WM.FocusedContainer->Left = NewFocusedContainer;
                         break;
                     }
                     case LEFT: {
                         WM.FocusedContainer->Left = NewContainer;
+                        WM.FocusedContainer->Right = NewFocusedContainer;
                         break;
                     }
                     case DOWN: {
                         WM.FocusedContainer->Right = NewContainer;
+                        WM.FocusedContainer->Left = NewFocusedContainer;
                         break;
                     }
                     case UP: {
-                        WM.FocusedContainer->Left = NewContainer;
+                   WM.FocusedContainer->Left = NewContainer;
+                        WM.FocusedContainer->Right = NewFocusedContainer;
                         break;
                     }
                 }
