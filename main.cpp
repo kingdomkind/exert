@@ -393,7 +393,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         ToBeRemoved->Parent->Value = PromotionContainer->Value;
 
 
-        /*
+        /*a
         std::shared_ptr<Container> PromotionContainer;
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
             PromotionContainer = ToBeRemoved->Parent->Right;
