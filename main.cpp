@@ -206,6 +206,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     // Copy Target Container Properties that we need
     std::shared_ptr<Container> CurrentContainer = {};
+    CurrentContainer->Parent = nullptr
     if (TargetContainer->Parent != nullptr) {
         CurrentContainer->Parent = TargetContainer->Parent;
     }
@@ -215,6 +216,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     while (true) {
         if (CurrentContainer->Parent == nullptr) {
+            std::cout << "We break" << std::endl;
             break;
         }
         std::cout << "Achievement get: how did we get here?" << std::endl;
