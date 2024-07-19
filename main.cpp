@@ -16,9 +16,9 @@
 #include <X11/keysym.h>
 
 enum Split {
-    VERTICAL,
-    HORIZONTAL,
-    NONE,
+    VERTICAL, // 0
+    HORIZONTAL, // 1
+    NONE, // 2
 };
 enum WindowSegment {
     LEFT, // Remaining 2/4 middle left
@@ -296,13 +296,11 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
             xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
 
             if (FocusedWindowGeometry) {
-                std::shared_ptr<Window> FocusedWindow = WM.FocusedContainer->Value;
                 WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
 
                 std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
                 NewFocusedContainer->Direction = NONE;
-                NewFocusedContainer->Parent = nullptr;
-                NewFocusedContainer->Value = FocusedWindow;
+                NewFocusedContainer->Value = WM.FocusedContainer->Value;
                 NewFocusedContainer->Parent = WM.FocusedContainer;
                 NewContainer->Parent = WM.FocusedContainer;
 
@@ -322,7 +320,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     WM.FocusedContainer->Right = NewFocusedContainer;
                 }
 
-                WM.FocusedContainer.reset();
                 WM.FocusedContainer = NewFocusedContainer;
                 UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
