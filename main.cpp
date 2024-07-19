@@ -192,6 +192,12 @@ void StartupWM() {
 }
 
 void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
+
+    if (TargetContainer->Value == nullptr) {
+        std::cerr << "Target container has no value -- cannot proceed in positioning and sizing it! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
     X = 0; Y = 0; Width = 1280; Height = 800;
@@ -202,6 +208,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     while (true) {
         if (CurrentContainer->Parent == nullptr) {
+            std::cout << "breaking" << std::endl;
             break;
         }
         std::cout << "How did we get here?" << std::endl;
