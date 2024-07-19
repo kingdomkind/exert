@@ -236,7 +236,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         } else {
             Height = Height * 0.5;
 
-            if (TopContainer->Right == Stack.top()) {
+            if (TopContainer->Left == Stack.top()) {
                 Y += Height;
             } 
         }
@@ -324,7 +324,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                     WM.FocusedContainer->Direction = VERTICAL;
                 }
 
-                if (Section == RIGHT || Section == UP) {
+                if (Section == RIGHT || Section == DOWN) {
                     WM.FocusedContainer->Right = NewContainer;
                     WM.FocusedContainer->Left = NewFocusedContainer;
                 } else {
