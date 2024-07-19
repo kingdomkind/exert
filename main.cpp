@@ -369,17 +369,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
     if (!(ToBeRemoved->Parent == nullptr)) {
-        /*
-        if (ToBeRemoved->Parent->Left == ToBeRemoved) {
-            ToBeRemoved->Parent->Value = ToBeRemoved->Parent->Right->Value;
-        } else {
-            ToBeRemoved->Parent->Value = ToBeRemoved->Parent->Left->Value;
-        }
-
-        ToBeRemoved->Parent->Left = nullptr;
-        ToBeRemoved->Parent->Right = nullptr;
-        ToBeRemoved->Parent->Direction = NONE;
-        */
         std::shared_ptr<Container> PromotionContainer;
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
             PromotionContainer = ToBeRemoved->Parent->Right;
@@ -392,27 +381,36 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         ToBeRemoved->Parent->Right = PromotionContainer->Right;
         ToBeRemoved->Parent->Value = PromotionContainer->Value;
 
-
-        /*a
-        std::shared_ptr<Container> PromotionContainer;
-        if (ToBeRemoved->Parent->Left == ToBeRemoved) {
-            PromotionContainer = ToBeRemoved->Parent->Right;
-        } else {
-            PromotionContainer = ToBeRemoved->Parent->Left;
-        }
-
-        if (ToBeRemoved->Parent->Parent->Left == ToBeRemoved->Parent) {
-            ToBeRemoved->Parent->Parent->Left = PromotionContainer;
-        } else {
-            ToBeRemoved->Parent->Parent->Right = PromotionContainer;
-        } */
-
         if (WM.FocusedContainer == ToBeRemoved) {
             WM.FocusedContainer = nullptr;
             std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
         }
 
-        UpdateWindowToCurrentSplits(ToBeRemoved->Parent);
+        std::stack<std::shared_ptr<Container>> Stack;
+        Stack.push(ToBeRemoved->Parent);
+
+        while (!Stack.empty()) {
+            std::shared_ptr<Container> CurrentContainer = Stack.top();
+            Stack.pop();
+
+            if (CurrentContainer->Direction == NONE) {
+                UpdateWindowToCurrentSplits(CurrentContainer);
+            } else {
+                if (CurrentContainer->Right != nullptr) {
+                    Stack.push(CurrentContainer->Right);
+                } else {
+                    std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                if (CurrentContainer->Left != nullptr) {
+                    Stack.push(CurrentContainer->Left);
+                } else {
+                    std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+
     } else {
         WM.RootContainer = nullptr;
         std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
