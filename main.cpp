@@ -343,6 +343,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
             exit(EXIT_FAILURE);
         }
     } else { // First window opened
+        std::cout << "No root, making new root" << std::endl;
         WM.RootContainer = NewContainer;
     }
 
