@@ -236,7 +236,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         } else {
             Height = Height * 0.5;
 
-            if (TopContainer->Right == Stack.top()) {
+            if (TopContainer->Left == Stack.top()) {
                 Y += Height;
             } 
         }
