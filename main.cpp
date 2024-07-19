@@ -205,7 +205,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     X = 0; Y = 0; Width = 1280; Height = 800;
     std::cout << "LIterally nothing can go wrong here" << std::endl;
 
-    // Copy Target Container Properties that we need
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     Stack.push(*CurrentContainer);
     std::cout << "Pre-Mid" << std::endl;
@@ -223,6 +222,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::cout << "Mid" << std::endl;
 
     while (!Stack.empty()) {
+        std::cout << "We in " << std::endl;
         std::shared_ptr<Container> TopContainer = Stack.top();
         Stack.pop();
 
