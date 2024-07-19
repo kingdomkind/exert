@@ -375,7 +375,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     UpdateWindowToCurrentSplits(NewContainer);
 
     std::cout << "ADDED! " << Event->window << std::endl;
-    //PrintVisibleWindows();
+    PrintVisibleWindows();
 
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
