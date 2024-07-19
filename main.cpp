@@ -391,7 +391,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    RemoveContainerFromWM(GetContainerFromWindow(Event->window));
+    //RemoveContainerFromWM(GetContainerFromWindow(Event->window));
 }
 
 //void OnDestroyNotify(const xcb_generic_event_t* NextEvent) { TODO
