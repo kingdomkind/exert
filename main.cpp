@@ -418,13 +418,6 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             PromotionContainer->Parent = nullptr;
         }
 
-        if (WM.FocusedContainer == ToBeRemoved) {
-            WM.FocusedContainer = nullptr;
-            std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
-        } else {
-            std::cout << "Focused Container is: " << WM.FocusedContainer << " which is not the same as " << ToBeRemoved << std::endl;
-        }
-
         std::cout << "After reconfigurement" << std::endl;
         PrintVisibleWindows();
 
@@ -456,6 +449,13 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
     } else {
         WM.RootContainer = nullptr;
         std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
+    }
+
+    if (WM.FocusedContainer == ToBeRemoved) {
+        WM.FocusedContainer = nullptr;
+        std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
+    } else {
+        std::cout << "Focused Container is: " << WM.FocusedContainer << " which is not the same as " << ToBeRemoved << std::endl;
     }
 }
 
