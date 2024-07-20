@@ -454,8 +454,6 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
     if (WM.FocusedContainer == ToBeRemoved) {
         WM.FocusedContainer = nullptr;
         std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
-    } else {
-        std::cout << "Focused Container is: " << WM.FocusedContainer << " which is not the same as " << ToBeRemoved << std::endl;
     }
 }
 
@@ -476,7 +474,7 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
 }
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Attempted to kill focused container - which is nullptr!" << " [EXIT] " << std::endl;; exit(EXIT_FAILURE); } }},
+    {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", []() { ExitWM(); }},
 };
 
