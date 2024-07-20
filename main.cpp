@@ -153,13 +153,11 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
             }
         }
     } else {
-        std::cerr << "Could not get container from window as there is no root container! [EXIT]" << std::endl;
-        //exit(EXIT_FAILURE);
+        std::cout << "Could not get container from window as there is no root container!" << std::endl;
         return  nullptr;
     }
 
-    std::cerr << "Could not find the specified container for window: " << Window << std::endl;
-    //exit(EXIT_FAILURE);
+    std::cerr << "Could not find the specified container for window: " << Window << ", note that this may be because we do not manage this client" << std::endl;
     return nullptr;
 }
 
@@ -250,7 +248,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
-    X = 0; Y = 0; Width = 3840; Height = 2160;
+    X = 0; Y = 0; Width = 1280; Height = 800;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     while (true) {
@@ -464,7 +462,7 @@ void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     auto Result = GetContainerFromWindow(Event->window);
     if (Result != nullptr) {
         RemoveContainerFromWM(Result);
-    }
+    } // We don't error, as it can fail as unmap can be called on clients we haven't set up
 }
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
