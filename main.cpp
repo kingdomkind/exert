@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
+#include <xcb/xcb_icccm.h>
 
 enum Split {
     VERTICAL, // 0
@@ -36,6 +37,11 @@ struct Window {
     xcb_window_t Window;
 };
 
+struct Protocols {
+    xcb_atom_t Protocols;
+    xcb_atom_t DeleteWindow;
+};
+
 struct Container { // If Direction is None it will have a Value, otherwise it will have no value
     Split Direction;
     
@@ -52,6 +58,8 @@ struct WM {
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Container> FocusedContainer;
     std::shared_ptr<Container> RootContainer;
+
+    Protocols ProtocolsContainer;
 };
 
 WM WM;
@@ -59,6 +67,25 @@ WM WM;
 const uint32_t BORDER_WIDTH = 3;
 const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
+
+bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
+  // Get the supported protocols
+    xcb_icccm_get_wm_protocols_reply_t Protocols;
+    xcb_get_property_cookie_t Cookie = xcb_icccm_get_wm_protocols(WM.Connection, Window, WM.ProtocolsContainer.Protocols);
+    if (xcb_icccm_get_wm_protocols_reply(WM.Connection, Cookie, &Protocols, NULL) != 1) {
+        return false;
+    }
+
+     for (unsigned int i = 0; i < Protocols.atoms_len; i++) {
+            if (Protocols.atoms[i] == Atom) {
+                xcb_icccm_get_wm_protocols_reply_wipe(&Protocols);
+                return true;
+            }
+     }
+
+    xcb_icccm_get_wm_protocols_reply_wipe(&Protocols);
+    return false;
+}
 
 void PrintVisibleWindows() {
     std::cout << "Visible Windows: \n" << std::endl;
@@ -154,9 +181,24 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
 }
 
 void KillWindow(xcb_window_t Window) {
-    std::cout << "Attempting to kill window: " << Window << std::endl;
-    xcb_kill_client(WM.Connection, Window);
-    xcb_flush(WM.Connection);
+    if (DoesWindowSupportProtocol(Window, WM.ProtocolsContainer.DeleteWindow)) {
+        std::cout << "Soft killing window: " << Window << std::endl;
+        xcb_client_message_event_t Event;
+        std::memset(&Event, 0, sizeof(Event));
+        Event.response_type = XCB_CLIENT_MESSAGE;
+        Event.window = Window;
+        Event.type = WM.ProtocolsContainer.Protocols;
+        Event.format = 32;
+        Event.data.data32[0] = WM.ProtocolsContainer.DeleteWindow;
+        Event.data.data32[1] = XCB_CURRENT_TIME;
+
+        xcb_send_event(WM.Connection, false, Window, XCB_EVENT_MASK_NO_EVENT, (const char*)&Event);
+        xcb_flush(WM.Connection);
+    } else {
+        std::cout << "Hard killing window: " << Window << std::endl;
+        xcb_kill_client(WM.Connection, Window);
+        xcb_flush(WM.Connection);
+    }
 }
 
 void ExitWM() {
@@ -208,7 +250,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
-    X = 0; Y = 0; Width = 1280; Height = 800;
+    X = 0; Y = 0; Width = 3840; Height = 2160;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     while (true) {
@@ -507,6 +549,15 @@ int main() {
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
+
+    // Get Protocols
+    xcb_intern_atom_reply_t* Protocols = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_PROTOCOLS"), "WM_PROTOCOLS"), nullptr);
+    WM.ProtocolsContainer.Protocols = Protocols->atom;
+    free(Protocols);
+
+    xcb_intern_atom_reply_t* DeleteWindow = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_DELETE_WINDOW"), "WM_DELETE_WINDOW"), nullptr);
+    WM.ProtocolsContainer.DeleteWindow = DeleteWindow->atom;
+    free(DeleteWindow);
 
     Keybind Test = {};
     Test.Modifier = XCB_MOD_MASK_1;
