@@ -153,11 +153,13 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
             }
         }
     } else {
-        std::cout << "Could not get container from window as there is no root container!" << std::endl;
+        std::cerr << "Could not get container from window as there is no root container! [EXIT]" << std::endl;
+        //exit(EXIT_FAILURE);
         return  nullptr;
     }
 
-    std::cerr << "Could not find the specified container for window: " << Window << ", note that this may be because we do not manage this client" << std::endl;
+    std::cerr << "Could not find the specified container for window: " << Window << std::endl;
+    //exit(EXIT_FAILURE);
     return nullptr;
 }
 
