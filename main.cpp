@@ -250,7 +250,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
-    X = 0; Y = 0; Width = 3840; Height = 2160;
+    X = 0; Y = 0; Width = 1280; Height = 800;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     while (true) {
