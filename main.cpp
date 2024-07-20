@@ -250,7 +250,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
-    X = 0; Y = 0; Width = 1280; Height = 800;
+    X = 0; Y = 0; Width = 3840; Height = 2160;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     while (true) {
@@ -573,6 +573,26 @@ int main() {
     Test3.Modifier = XCB_MOD_MASK_1;
     Test3.Command = "exert-command KillActive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
+
+    Keybind Test4 = {};
+    Test4.Modifier = XCB_MOD_MASK_1;
+    Test4.Command = "librewolf";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_d), Test4});
+
+    Keybind Test5 = {};
+    Test5.Modifier = XCB_MOD_MASK_1;
+    Test5.Command = "armcord";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_f), Test5});
+
+    Keybind Test6 = {};
+    Test6.Modifier = XCB_MOD_MASK_1;
+    Test6.Command = "kitty";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_q), Test6});
+
+    Keybind Test7 = {};
+    Test7.Modifier = XCB_MOD_MASK_1;
+    Test7.Command = "vscodium";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_z), Test7});
 
     StartupWM();
     RunEventLoop();
