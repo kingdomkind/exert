@@ -69,7 +69,6 @@ const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 
 bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
-  // Get the supported protocols
     xcb_icccm_get_wm_protocols_reply_t Protocols;
     xcb_get_property_cookie_t Cookie = xcb_icccm_get_wm_protocols(WM.Connection, Window, WM.ProtocolsContainer.Protocols);
     if (xcb_icccm_get_wm_protocols_reply(WM.Connection, Cookie, &Protocols, NULL) != 1) {
@@ -118,11 +117,34 @@ void PrintVisibleWindows() {
             }
         }
     } else {
-        std::cerr << "Could not print windows as there is no root container! [EXIT]" << std::endl;
-        //exit(EXIT_FAILURE);
+        std::cerr << "Could not print windows as there is no root container!" << std::endl;
     }
     std::cout << std::endl;
 }
+
+bool DoesContainerForWindowExist(xcb_window_t Window) {
+    if (!(WM.RootContainer == nullptr)) {
+        std::stack<std::shared_ptr<Container>> Stack;
+        Stack.push(WM.RootContainer);
+
+        while (!Stack.empty()) {
+            std::shared_ptr<Container> CurrentContainer = Stack.top();
+            Stack.pop();
+
+            if (CurrentContainer->Direction == NONE) {
+                if (CurrentContainer->Value->Window == Window) { return true; }
+            } else {
+                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
+                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
+            }
+        }
+    } else {
+        std::cerr << "Could not check if a container for a window exists as there is no root container! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    return false;
+} 
 
 std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
     if (!(WM.RootContainer == nullptr)) {
@@ -154,13 +176,11 @@ std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
         }
     } else {
         std::cerr << "Could not get container from window as there is no root container! [EXIT]" << std::endl;
-        //exit(EXIT_FAILURE);
-        return  nullptr;
+        exit(EXIT_FAILURE);
     }
 
-    std::cerr << "Could not find the specified container for window: " << Window << std::endl;
-    //exit(EXIT_FAILURE);
-    return nullptr;
+    std::cerr << "Could not find the specified container for window: " << Window << " [EXIT] " << std::endl;
+    exit(EXIT_FAILURE);
 }
 
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
@@ -240,8 +260,6 @@ void StartupWM() {
 }
 
 void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
-
-    std::cout << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
 
     if (TargetContainer->Value == nullptr) {
         std::cerr << "Target container has no value -- cannot proceed in positioning and sizing it! [EXIT]" << std::endl;
@@ -461,18 +479,22 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetContainerFromWindow(Event->window);
-    if (Result != nullptr) {
+    
+    if (DoesContainerForWindowExist(Event->window)) {
+        auto Result = GetContainerFromWindow(Event->window);
         RemoveContainerFromWM(Result);
+    } else {
+        std::cerr << "There was an unmap request, but no related container could be found for the window! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
     }
 }
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetContainerFromWindow(Event->window);
-    if (Result != nullptr) {
+   if (DoesContainerForWindowExist(Event->window)) {
+        auto Result = GetContainerFromWindow(Event->window);
         RemoveContainerFromWM(Result);
-    }
+    } // Don't error here as is may not exist, and is likely to have already been done by the unmap, this is just incase
 }
 
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
