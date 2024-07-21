@@ -8,6 +8,7 @@
 #include <memory>
 #include <ostream>
 #include <stack>
+#include <algorithm>
 #include <unordered_map>
 #include <vector>
 #include <xcb/xcb.h>
@@ -66,7 +67,7 @@ struct Monitor {
     int Width;
     int Height;
 
-    unsigned int ActiveWorkspace;
+    int ActiveWorkspace = -1;
 };
 
 struct WM {
@@ -75,7 +76,8 @@ struct WM {
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Container> FocusedContainer;
     std::shared_ptr<Container> RootContainer; // Will be removed from here soon
-    std::vector<Monitor> Monitors;
+    std::vector<std::unique_ptr<Monitor>> Monitors;
+    std::vector<std::unique_ptr<Workspace>> Workspaces;
 
     Protocols ProtocolsContainer;
 };
@@ -542,6 +544,32 @@ void RunEventLoop() {
     }
 }
 
+void AssignFreeWorkspaceToMonitor(std::unique_ptr<Monitor> &Monitor) {
+    std::vector<int> ClaimedWorkspaces;
+    for (auto &MonitorLoop: WM.Monitors) {
+        if (MonitorLoop->ActiveWorkspace != -1) {
+            ClaimedWorkspaces.push_back(MonitorLoop->ActiveWorkspace);
+        }
+    }
+
+    for (int i = 0; i < WM.Workspaces.size(); i++) {
+        auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
+        if (Found != ClaimedWorkspaces.end()) { // Allocates any spare workspaces
+            Monitor->ActiveWorkspace = i;
+            std::cout << "Assigned Monitor: " << Monitor->Name << ", Pre-existing Workspace: " << i << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
+            return;
+        }
+    }
+
+    // No spare workspaces, create new one and allocate that
+    std::unique_ptr<Workspace> NewWorkspace = std::make_unique<Workspace>();
+    WM.Workspaces.push_back(NewWorkspace);
+    Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
+
+    std::cout << "Assigned Monitor: " << Monitor->Name << ", Already existing Workspace: " << WM.Workspaces.size() - 1
+    << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
+}
+
 void InitialiseMonitors() {
     xcb_randr_get_screen_resources_current_cookie_t ResourcesCookie = xcb_randr_get_screen_resources_current(WM.Connection, WM.Screen->root);
     xcb_randr_get_screen_resources_current_reply_t* ResourcesReply = xcb_randr_get_screen_resources_current_reply(WM.Connection, ResourcesCookie, nullptr);
@@ -570,19 +598,21 @@ void InitialiseMonitors() {
             xcb_randr_get_crtc_info_reply_t* CRTCReply = xcb_randr_get_crtc_info_reply(WM.Connection, CRTCCookie, nullptr);
 
             if (CRTCReply) {
-                Monitor Monitor;
-                Monitor.Output = Output;
-                Monitor.Name = std::string((char*)xcb_randr_get_output_info_name(InformationReply), xcb_randr_get_output_info_name_length(InformationReply));
-                Monitor.X = CRTCReply->x;
-                Monitor.Y = CRTCReply->y;
-                Monitor.Width = CRTCReply->width;
-                Monitor.Height = CRTCReply->height;
+                std::unique_ptr<Monitor> NewMonitor = std::make_unique<Monitor>();
+                NewMonitor->Output = Output;
+                NewMonitor->Name = std::string((char*)xcb_randr_get_output_info_name(InformationReply), xcb_randr_get_output_info_name_length(InformationReply));
+                NewMonitor->X = CRTCReply->x;
+                NewMonitor->Y = CRTCReply->y;
+                NewMonitor->Width = CRTCReply->width;
+                NewMonitor->Height = CRTCReply->height;
 
-                WM.Monitors.push_back(Monitor);
+                WM.Monitors.push_back(NewMonitor);
 
-                std::cout << "Name: " << Monitor.Name << "Output: " << Monitor.Output << ", X: " << Monitor.X << ", Y: " << Monitor.Y << ", Width: " << Monitor.Width << ", Height: " << Monitor.Height << std::endl;
+                std::cout << "Name: " << NewMonitor->Name << ", Output: " << NewMonitor->Output << ", X: " << NewMonitor->X << ", Y: " 
+                << NewMonitor->Y << ", Width: " << NewMonitor->Width << ", Height: " << NewMonitor->Height << std::endl;
 
                 free(CRTCReply);
+                AssignFreeWorkspaceToMonitor(NewMonitor);
             }
         } else {
             std::cerr << "Output: " << Output << " has no crtc, skipping!" << std::endl;
