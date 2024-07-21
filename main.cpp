@@ -9,12 +9,14 @@
 #include <ostream>
 #include <stack>
 #include <unordered_map>
+#include <vector>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <unistd.h>
 #include <xcb/xproto.h>
 #include <X11/keysym.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/randr.h>
 
 enum Split {
     VERTICAL, // 0
@@ -52,12 +54,27 @@ struct Container { // If Direction is None it will have a Value, otherwise it wi
     std::shared_ptr<Window> Value = nullptr;
 };
 
+struct Workspace {
+    std::shared_ptr<Container> RootContainer;
+};
+
+struct Monitor {
+    xcb_randr_output_t Output;
+    int X;
+    int Y;
+    int Width;
+    int Height;
+
+    unsigned int ActiveWorkspace;
+};
+
 struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Container> FocusedContainer;
-    std::shared_ptr<Container> RootContainer;
+    std::shared_ptr<Container> RootContainer; // Will be removed from here soon
+    std::vector<Monitor> Monitors;
 
     Protocols ProtocolsContainer;
 };
@@ -524,6 +541,58 @@ void RunEventLoop() {
     }
 }
 
+void InitialiseMonitors() {
+    xcb_randr_get_screen_resources_current_cookie_t ResourcesCookie = xcb_randr_get_screen_resources_current(WM.Connection, WM.Screen->root);
+    xcb_randr_get_screen_resources_current_reply_t* ResourcesReply = xcb_randr_get_screen_resources_current_reply(WM.Connection, ResourcesCookie, nullptr);
+
+    if (!ResourcesReply) {
+        std::cerr << "Failed to get screen resources! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int NumberOfOutputs = xcb_randr_get_screen_resources_current_outputs_length(ResourcesReply);
+    xcb_randr_output_t* Outputs = xcb_randr_get_screen_resources_current_outputs(ResourcesReply);
+
+    for (int i = 0; i < NumberOfOutputs; i++) {
+        xcb_randr_output_t Output = Outputs[i];
+        
+        xcb_randr_get_output_info_cookie_t InformationCookie = xcb_randr_get_output_info(WM.Connection, Output, XCB_CURRENT_TIME);
+        xcb_randr_get_output_info_reply_t* InformationReply = xcb_randr_get_output_info_reply(WM.Connection, InformationCookie, nullptr);
+
+        if (!InformationReply) {
+            std::cerr << "Failed to get info for Output: " << Output << " [EXIT] " << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        if (InformationReply->crtc != XCB_NONE) {
+            xcb_randr_get_crtc_info_cookie_t CRTCCookie = xcb_randr_get_crtc_info(WM.Connection, InformationReply->crtc, XCB_CURRENT_TIME);
+            xcb_randr_get_crtc_info_reply_t* CRTCReply = xcb_randr_get_crtc_info_reply(WM.Connection, CRTCCookie, nullptr);
+
+            if (CRTCReply) {
+                Monitor Monitor;
+                Monitor.Output = Output;
+                std::cout << std::string((char*)xcb_randr_get_output_info_name(InformationReply), xcb_randr_get_output_info_name_length(InformationReply)) << std::endl;
+                Monitor.X = CRTCReply->x;
+                Monitor.Y = CRTCReply->y;
+                Monitor.Width = CRTCReply->width;
+                Monitor.Height = CRTCReply->height;
+
+                WM.Monitors.push_back(Monitor);
+
+                std::cout << "Output: " << Monitor.Output << ", X: " << Monitor.X << ", Y: " << Monitor.Y << ", Width: " << Monitor.Width << ", Height: " << Monitor.Height << std::endl;
+
+                free(CRTCReply);
+            }
+        } else {
+            std::cerr << "Output: " << Output << " has no crtc, skipping!" << std::endl;
+        }
+
+        free(InformationReply);
+    }
+
+    free(ResourcesReply);
+}
+
 int main() {
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
@@ -547,6 +616,8 @@ int main() {
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
+
+    InitialiseMonitors();
 
     // Get Protocols
     xcb_intern_atom_reply_t* Protocols = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_PROTOCOLS"), "WM_PROTOCOLS"), nullptr);
