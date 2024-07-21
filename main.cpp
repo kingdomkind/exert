@@ -60,6 +60,7 @@ struct Workspace {
 
 struct Monitor {
     xcb_randr_output_t Output;
+    std::string Name;
     int X;
     int Y;
     int Width;
@@ -571,7 +572,7 @@ void InitialiseMonitors() {
             if (CRTCReply) {
                 Monitor Monitor;
                 Monitor.Output = Output;
-                std::cout << std::string((char*)xcb_randr_get_output_info_name(InformationReply), xcb_randr_get_output_info_name_length(InformationReply)) << std::endl;
+                Monitor.Name = std::string((char*)xcb_randr_get_output_info_name(InformationReply), xcb_randr_get_output_info_name_length(InformationReply));
                 Monitor.X = CRTCReply->x;
                 Monitor.Y = CRTCReply->y;
                 Monitor.Width = CRTCReply->width;
@@ -579,7 +580,7 @@ void InitialiseMonitors() {
 
                 WM.Monitors.push_back(Monitor);
 
-                std::cout << "Output: " << Monitor.Output << ", X: " << Monitor.X << ", Y: " << Monitor.Y << ", Width: " << Monitor.Width << ", Height: " << Monitor.Height << std::endl;
+                std::cout << "Name: " << Monitor.Name << "Output: " << Monitor.Output << ", X: " << Monitor.X << ", Y: " << Monitor.Y << ", Width: " << Monitor.Width << ", Height: " << Monitor.Height << std::endl;
 
                 free(CRTCReply);
             }
