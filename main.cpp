@@ -19,6 +19,7 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/randr.h>
 
+
 enum Split {
     VERTICAL, // 0
     HORIZONTAL, // 1
