@@ -76,8 +76,8 @@ struct WM {
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Container> FocusedContainer;
     std::shared_ptr<Container> RootContainer; // Will be removed from here soon
-    std::vector<std::unique_ptr<Monitor>> Monitors;
-    std::vector<std::unique_ptr<Workspace>> Workspaces;
+    std::vector<std::shared_ptr<Monitor>> Monitors;
+    std::vector<std::shared_ptr<Workspace>> Workspaces;
 
     Protocols ProtocolsContainer;
 };
@@ -544,7 +544,7 @@ void RunEventLoop() {
     }
 }
 
-void AssignFreeWorkspaceToMonitor(std::unique_ptr<Monitor> &Monitor) {
+void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
     std::vector<int> ClaimedWorkspaces;
     for (auto &MonitorLoop: WM.Monitors) {
         if (MonitorLoop->ActiveWorkspace != -1) {
@@ -562,7 +562,7 @@ void AssignFreeWorkspaceToMonitor(std::unique_ptr<Monitor> &Monitor) {
     }
 
     // No spare workspaces, create new one and allocate that
-    std::unique_ptr<Workspace> NewWorkspace = std::make_unique<Workspace>();
+    std::shared_ptr<Workspace> NewWorkspace = std::shared_ptr<Workspace>();
     WM.Workspaces.push_back(NewWorkspace);
     Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
 
@@ -598,7 +598,7 @@ void InitialiseMonitors() {
             xcb_randr_get_crtc_info_reply_t* CRTCReply = xcb_randr_get_crtc_info_reply(WM.Connection, CRTCCookie, nullptr);
 
             if (CRTCReply) {
-                std::unique_ptr<Monitor> NewMonitor = std::make_unique<Monitor>();
+                std::shared_ptr<Monitor> NewMonitor = std::make_shared<Monitor>();
                 NewMonitor->Output = Output;
                 NewMonitor->Name = std::string((char*)xcb_randr_get_output_info_name(InformationReply), xcb_randr_get_output_info_name_length(InformationReply));
                 NewMonitor->X = CRTCReply->x;
