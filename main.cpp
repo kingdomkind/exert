@@ -396,6 +396,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceChecked(GetActiveMonitor())];
 
+    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
+        std::cout << "Workspace Exists: " << i << std::endl;
+    }
+
     std::cout << "Before if" << std::endl;
     std::cout << ActiveWorkspace << std::endl;
     std::cout << ActiveWorkspace->RootContainer << std::endl;
