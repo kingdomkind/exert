@@ -72,7 +72,7 @@ struct Monitor {
 };
 
 struct WindowMetadata {
-    std::shared_ptr<Container> Container;
+    std::shared_ptr<struct Container> Container;
     int Workspace = -1;
 };
 
@@ -81,7 +81,6 @@ struct WM {
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Container> FocusedContainer;
-    //std::shared_ptr<Container> RootContainer;
     std::vector<std::shared_ptr<Monitor>> Monitors;
     std::vector<std::shared_ptr<Workspace>> Workspaces;
 
