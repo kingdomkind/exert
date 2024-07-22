@@ -608,7 +608,7 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
     }
 
     // No spare workspaces, create new one and allocate that
-    std::shared_ptr<Workspace> NewWorkspace = std::shared_ptr<Workspace>();
+    std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
     WM.Workspaces.push_back(NewWorkspace);
     Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
 
