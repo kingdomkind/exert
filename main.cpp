@@ -57,7 +57,7 @@ struct Container { // If Direction is None it will have a Value, otherwise it wi
 };
 
 struct Workspace {
-    std::shared_ptr<Container> RootContainer;
+    std::shared_ptr<Container> RootContainer = nullptr;
 };
 
 struct Monitor {
@@ -386,8 +386,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveMonitor()->ActiveWorkspace];
 
     std::cout << "Before if" << std::endl;
+    auto ret = ActiveWorkspace->RootContainer;
+    std::cout << "After ret" << std::endl;
+
     if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
-    std::cout << "What d a hell" << std::endl;
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
             xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
 
