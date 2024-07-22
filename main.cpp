@@ -370,6 +370,7 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
 }
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
+    std::cout << "Map request recieved" << std::endl;
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
 
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
