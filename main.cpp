@@ -113,8 +113,10 @@ bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
 }
 
 void PrintVisibleWindows() {
+    std::cout << "Starting Printing Visible Windows" << std::endl;
     std::cout << "Visible Windows: \n" << std::endl;
-    for (auto Workspace: WM.Workspaces) {
+    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
+        std::shared_ptr<Workspace> Workspace = WM.Workspaces[i];
         if (!(Workspace->RootContainer == nullptr)) {
             std::stack<std::shared_ptr<Container>> Stack;
             Stack.push(Workspace->RootContainer);
@@ -124,6 +126,7 @@ void PrintVisibleWindows() {
                 Stack.pop();
 
                 std::cout << "Container: " << CurrentContainer << std::endl;
+                std::cout << "Workspace " << i << std::endl;
                 if (CurrentContainer->Value != nullptr) {
                     std::cout << "Window: " << CurrentContainer->Value->Window << std::endl;
                 } else {
@@ -562,8 +565,8 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
-            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            //case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
+            //case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             default: { break; }
         }
