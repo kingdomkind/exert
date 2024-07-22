@@ -153,7 +153,7 @@ void PrintVisibleWindows() {
 }
 
 std::shared_ptr<WindowMetadata> GetWorkspaceAndContainerFromWindow(xcb_window_t Window) {
-    std::shared_ptr<WindowMetadata> Metadata = std::shared_ptr<WindowMetadata>();
+    std::shared_ptr<WindowMetadata> Metadata = std::make_shared<WindowMetadata>();
     for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
         std::shared_ptr<Workspace> Workspace = WM.Workspaces[i];
         if (!(Workspace->RootContainer == nullptr)) {
