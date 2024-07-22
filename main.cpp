@@ -374,6 +374,7 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
 unsigned int GetActiveWorkspaceChecked(std::shared_ptr<Monitor> MonitorToCheck) {
     int ActiveWorkspace = MonitorToCheck->ActiveWorkspace;
     if (ActiveWorkspace != -1) {
+        std::cout << "Active workspace of Monitor: " << MonitorToCheck->Name << " is " << ActiveWorkspace << std::endl;
         return ActiveWorkspace;
     } else {
         std::cerr << "Active workspace of Monitor: " << MonitorToCheck->Name << " is -1, which is invalid! [EXIT]" << std::endl;
