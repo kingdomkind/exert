@@ -71,12 +71,17 @@ struct Monitor {
     int ActiveWorkspace = -1;
 };
 
+struct WindowMetadata {
+    std::shared_ptr<Container> Container;
+    int Workspace = -1;
+};
+
 struct WM {
     xcb_connection_t* Connection;
     xcb_screen_t* Screen;
     xcb_key_symbols_t* Keysyms;
     std::shared_ptr<Container> FocusedContainer;
-    std::shared_ptr<Container> RootContainer; // Will be removed from here soon
+    //std::shared_ptr<Container> RootContainer;
     std::vector<std::shared_ptr<Monitor>> Monitors;
     std::vector<std::shared_ptr<Workspace>> Workspaces;
 
@@ -110,74 +115,76 @@ bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
 
 void PrintVisibleWindows() {
     std::cout << "Visible Windows: \n" << std::endl;
+    for (auto Workspace: WM.Workspaces) {
+        if (!(Workspace->RootContainer == nullptr)) {
+            std::stack<std::shared_ptr<Container>> Stack;
+            Stack.push(Workspace->RootContainer);
 
-    if (!(WM.RootContainer == nullptr)) {
-        std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(WM.RootContainer);
+            while (!Stack.empty()) {
+                std::shared_ptr<Container> CurrentContainer = Stack.top();
+                Stack.pop();
 
-        while (!Stack.empty()) {
-            std::shared_ptr<Container> CurrentContainer = Stack.top();
-            Stack.pop();
+                std::cout << "Container: " << CurrentContainer << std::endl;
+                if (CurrentContainer->Value != nullptr) {
+                    std::cout << "Window: " << CurrentContainer->Value->Window << std::endl;
+                } else {
+                    std::cout << "Window: " << "No Associated Window" << std::endl;
+                }
+                std::cout << "Direction: " << CurrentContainer->Direction << std::endl;
+                std::cout << "Parent: " << CurrentContainer->Parent << std::endl;
+                std::cout << "Left Pointer: " << CurrentContainer->Left << std::endl;
+                std::cout << "Right Pointer: " << CurrentContainer->Left << std::endl; 
+                std::cout << "\n" << std::endl;
 
-            std::cout << "Container: " << CurrentContainer << std::endl;
-            if (CurrentContainer->Value != nullptr) {
-                std::cout << "Window: " << CurrentContainer->Value->Window << std::endl;
-            } else {
-                std::cout << "Window: " << "No Associated Window" << std::endl;
+                if (CurrentContainer->Right != nullptr) {
+                    Stack.push(CurrentContainer->Right);
+                }
+                if (CurrentContainer->Left != nullptr) {
+                    Stack.push(CurrentContainer->Left);
+                }
             }
-            std::cout << "Direction: " << CurrentContainer->Direction << std::endl;
-            std::cout << "Parent: " << CurrentContainer->Parent << std::endl;
-            std::cout << "Left Pointer: " << CurrentContainer->Left << std::endl;
-            std::cout << "Right Pointer: " << CurrentContainer->Left << std::endl; 
-            std::cout << "\n" << std::endl;
-
-            if (CurrentContainer->Right != nullptr) {
-                Stack.push(CurrentContainer->Right);
-            }
-            if (CurrentContainer->Left != nullptr) {
-                Stack.push(CurrentContainer->Left);
-            }
+        } else {
+            std::cerr << "Could not print windows as there is no root container!" << std::endl;
         }
-    } else {
-        std::cerr << "Could not print windows as there is no root container! [EXIT]" << std::endl;
-        //exit(EXIT_FAILURE);
     }
     std::cout << std::endl;
 }
 
-std::shared_ptr<Container> GetContainerFromWindow(xcb_window_t Window) {
-    if (!(WM.RootContainer == nullptr)) {
-        std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(WM.RootContainer);
+std::shared_ptr<WindowMetadata> GetWorkspaceAndContainerFromWindow(xcb_window_t Window) {
+    std::shared_ptr<WindowMetadata> Metadata = std::shared_ptr<WindowMetadata>();
+    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
+        std::shared_ptr<Workspace> Workspace = WM.Workspaces[i];
+        if (!(Workspace->RootContainer == nullptr)) {
+            std::stack<std::shared_ptr<Container>> Stack;
+            Stack.push(Workspace->RootContainer);
 
-        while (!Stack.empty()) {
-            std::shared_ptr<Container> CurrentContainer = Stack.top();
-            Stack.pop();
+            while (!Stack.empty()) {
+                std::shared_ptr<Container> CurrentContainer = Stack.top();
+                Stack.pop();
 
-            if (CurrentContainer->Direction == NONE) {
-                if (CurrentContainer->Value->Window == Window) {
-                    return CurrentContainer;
-                }
-            } else {
-                if (CurrentContainer->Right != nullptr) {
-                    Stack.push(CurrentContainer->Right);
+                if (CurrentContainer->Direction == NONE) {
+                    if (CurrentContainer->Value->Window == Window) {
+                        Metadata->Container = CurrentContainer;
+                        Metadata->Workspace = i;
+                        return Metadata;
+                    }
                 } else {
-                    std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
-                if (CurrentContainer->Left != nullptr) {
-                    Stack.push(CurrentContainer->Left);
-                } else {
-                    std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
-                    exit(EXIT_FAILURE);
+                    if (CurrentContainer->Right != nullptr) {
+                        Stack.push(CurrentContainer->Right);
+                    } else {
+                        std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    if (CurrentContainer->Left != nullptr) {
+                        Stack.push(CurrentContainer->Left);
+                    } else {
+                        std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
                 }
             }
         }
-    } else {
-        std::cout << "Could not get container from window as there is no root container!" << std::endl;
-        return  nullptr;
     }
-
     std::cerr << "Could not find the specified container for window: " << Window << ", note that this may be because we do not manage this client" << std::endl;
     return nullptr;
 }
@@ -191,7 +198,7 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
         }
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
-        WM.FocusedContainer = GetContainerFromWindow(Event->event);
+        WM.FocusedContainer = GetWorkspaceAndContainerFromWindow(Event->event)->Container;
         xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
         xcb_flush(WM.Connection);
     } else {
@@ -320,6 +327,21 @@ Coordinate GetCursorPosition() {
     }
 }
 
+
+std::shared_ptr<Monitor> GetActiveMonitor() {
+    Coordinate CursorPosition = GetCursorPosition();
+    for (std::shared_ptr<Monitor> Monitor: WM.Monitors) {
+        int UpperBoundX = Monitor->Width + Monitor->X;
+        int UpperBoundY = Monitor->Height + Monitor->Y;
+        if ((Monitor->X <= CursorPosition.X) && (CursorPosition.X <= UpperBoundX) && (Monitor->Y <= CursorPosition.Y) && (CursorPosition.Y <= UpperBoundY)) {
+            return Monitor;
+        }
+    }
+
+    std::cerr << "No Active Monitor was found somehow! [EXIT]" << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, Window), NULL);
     Coordinate CursorPosition = GetCursorPosition();
@@ -357,7 +379,9 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     NewContainer->Parent = nullptr;
     NewContainer->Value = NewWindow;
 
-    if (!(WM.RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
+    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveMonitor()->ActiveWorkspace];
+
+    if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
             xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
 
@@ -399,7 +423,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
         }
     } else { // First window opened
         std::cout << "No root, making new root" << std::endl;
-        WM.RootContainer = NewContainer;
+        ActiveWorkspace->RootContainer = NewContainer;
     }
 
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
@@ -414,10 +438,9 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     xcb_flush(WM.Connection);
 }
 
-void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
+void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
 
     std::cout << "Removing container from WM" << std::endl;
-
     if (!(ToBeRemoved->Parent == nullptr)) {
         std::shared_ptr<Container> PromotionContainer;
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
@@ -435,7 +458,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
             PromotionContainer->Parent = ToBeRemoved->Parent->Parent;
         } else {
             ToBeRemoved->Parent = PromotionContainer;
-            WM.RootContainer = PromotionContainer;
+            WM.Workspaces[Workspace]->RootContainer = PromotionContainer;
             PromotionContainer->Parent = nullptr;
         }
 
@@ -468,7 +491,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
         }
 
     } else {
-        WM.RootContainer = nullptr;
+        WM.Workspaces[Workspace]->RootContainer = nullptr;
         std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
     }
 
@@ -480,17 +503,17 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved) {
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetContainerFromWindow(Event->window);
+    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
     if (Result != nullptr) {
-        RemoveContainerFromWM(Result);
+        RemoveContainerFromWM(Result->Container, Result->Workspace);
     } // We don't error, as it can fail as unmap can be called on clients we haven't set up
 }
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetContainerFromWindow(Event->window);
+    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
     if (Result != nullptr) {
-        RemoveContainerFromWM(Result);
+        RemoveContainerFromWM(Result->Container, Result->Workspace);
     }
 }
 
