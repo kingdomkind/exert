@@ -206,6 +206,7 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     } else {
         std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
     }
+    std::cout << "Finished setting focus" << std::endl;
 }
 
 void KillWindow(xcb_window_t Window) {
@@ -396,14 +397,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceChecked(GetActiveMonitor())];
 
-    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
-        std::cout << "Workspace Exists: " << i << std::endl;
-    }
-
-    std::cout << "Before if" << std::endl;
-    std::cout << ActiveWorkspace << std::endl;
-    std::cout << ActiveWorkspace->RootContainer << std::endl;
-
     if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
             xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
@@ -582,8 +575,8 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            //case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; } TODO BROKEN
-            //case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
+            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             default: { break; }
         }
