@@ -331,7 +331,6 @@ Coordinate GetCursorPosition() {
 
 
 std::shared_ptr<Monitor> GetActiveMonitor() {
-    std::cout << "Entered" << std::endl;
     Coordinate CursorPosition = GetCursorPosition();
     for (std::shared_ptr<Monitor> Monitor: WM.Monitors) {
         int UpperBoundX = Monitor->Width + Monitor->X;
@@ -365,7 +364,7 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
         return DOWN;
     }
 
-    if (RatioX < 0.5) { // TODO ADD RATIO Y SUPPORT
+    if (RatioX < 0.5) {
         return LEFT;
     } else {
         return RIGHT;
@@ -565,8 +564,8 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
-            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            //case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; } TODO BROKEN
+            //case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             default: { break; }
         }
