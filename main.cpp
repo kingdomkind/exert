@@ -333,6 +333,7 @@ std::shared_ptr<Monitor> GetActiveMonitor() {
         int UpperBoundX = Monitor->Width + Monitor->X;
         int UpperBoundY = Monitor->Height + Monitor->Y;
         if ((Monitor->X <= CursorPosition.X) && (CursorPosition.X <= UpperBoundX) && (Monitor->Y <= CursorPosition.Y) && (CursorPosition.Y <= UpperBoundY)) {
+            std::cout << "Returning Active Monitor is: " << Monitor->Name << std::endl;
             return Monitor;
         }
     }
@@ -378,7 +379,6 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     NewContainer->Parent = nullptr;
     NewContainer->Value = NewWindow;
 
-    std::cout << "Active Workspace: " << GetActiveMonitor()->ActiveWorkspace << std::endl;
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveMonitor()->ActiveWorkspace];
 
     if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
