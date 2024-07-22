@@ -552,7 +552,7 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
         }
     }
 
-    for (int i = 0; i < WM.Workspaces.size(); i++) {
+    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
         auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
         if (Found != ClaimedWorkspaces.end()) { // Allocates any spare workspaces
             Monitor->ActiveWorkspace = i;
