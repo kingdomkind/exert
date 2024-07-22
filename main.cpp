@@ -328,6 +328,7 @@ Coordinate GetCursorPosition() {
 
 
 std::shared_ptr<Monitor> GetActiveMonitor() {
+    std::cout << "Entered" << std::endl;
     Coordinate CursorPosition = GetCursorPosition();
     for (std::shared_ptr<Monitor> Monitor: WM.Monitors) {
         int UpperBoundX = Monitor->Width + Monitor->X;
@@ -338,7 +339,7 @@ std::shared_ptr<Monitor> GetActiveMonitor() {
         }
     }
 
-    std::cerr << "No Active Monitor was found somehow! [EXIT]" << std::endl;
+    std::cout << "No Active Monitor was found somehow! [EXIT]" << std::endl;
     exit(EXIT_FAILURE);
 }
 
