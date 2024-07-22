@@ -591,7 +591,7 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
     WM.Workspaces.push_back(NewWorkspace);
     Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
 
-    std::cout << "Assigned Monitor: " << Monitor->Name << ", Already existing Workspace: " << WM.Workspaces.size() - 1
+    std::cout << "Assigned Monitor: " << Monitor->Name << ", NEW Workspace: " << WM.Workspaces.size() - 1
     << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
 }
 
