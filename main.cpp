@@ -371,6 +371,16 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     }
 }
 
+unsigned int GetActiveWorkspaceChecked(std::shared_ptr<Monitor> MonitorToCheck) {
+    int ActiveWorkspace = MonitorToCheck->ActiveWorkspace;
+    if (ActiveWorkspace != -1) {
+        return ActiveWorkspace;
+    } else {
+        std::cerr << "Active workspace of Monitor: " << MonitorToCheck->Name << " is -1, which is invalid! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::cout << "Map request recieved" << std::endl;
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
@@ -383,12 +393,9 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     NewContainer->Parent = nullptr;
     NewContainer->Value = NewWindow;
 
-    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveMonitor()->ActiveWorkspace];
+    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceChecked(GetActiveMonitor())];
 
     std::cout << "Before if" << std::endl;
-    auto ret = ActiveWorkspace->RootContainer;
-    std::cout << "After ret" << std::endl;
-
     if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
             xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
@@ -529,7 +536,6 @@ std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", []() { ExitWM(); }},
 };
-
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
