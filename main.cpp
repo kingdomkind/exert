@@ -268,9 +268,19 @@ void StartupWM() {
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
+std::shared_ptr<Monitor> GetMonitorFromWorkspace(int Workspace) {
+    for (auto Monitor: WM.Monitors) {
+        if (Monitor->ActiveWorkspace == Workspace) {
+            return Monitor;
+        }
+    }
+    return nullptr;
+}
+
 void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::cout << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
+    std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace(GetWorkspaceAndContainerFromWindow(TargetContainer->Value->Window)->Workspace);
 
     if (TargetContainer->Value == nullptr) {
         std::cerr << "Target container has no value -- cannot proceed in positioning and sizing it! [EXIT]" << std::endl;
@@ -279,7 +289,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
-    X = 0; Y = 0; Width = 1280; Height = 800;
+    X = Monitor->X; Y = Monitor->Y; Width = Monitor->Width; Height = Monitor->Height;
 
     std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
     while (true) {
