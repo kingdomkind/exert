@@ -621,6 +621,7 @@ std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"ExitWM", []() { ExitWM(); }},
     {"1", [](){SetWorkspaceToMonitor(0, GetActiveMonitor()); }},
     {"2", [](){SetWorkspaceToMonitor(1, GetActiveMonitor()); }},
+    {"3", [](){SetWorkspaceToMonitor(2, GetActiveMonitor()); }},
 };
 
 
@@ -829,6 +830,11 @@ int main() {
     Test9.Modifier = XCB_MOD_MASK_1;
     Test9.Command = "exert-command 2";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_2), Test9});
+
+    Keybind Test10 = {};
+    Test10.Modifier = XCB_MOD_MASK_1;
+    Test10.Command = "exert-command 3";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_3), Test10});
 
     StartupWM();
     RunEventLoop();
