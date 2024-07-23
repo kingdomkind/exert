@@ -619,8 +619,8 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", []() { ExitWM(); }},
-    {"1", [](){SetWorkspaceToMonitor(1, GetActiveMonitor()); }},
-    {"2", [](){SetWorkspaceToMonitor(2, GetActiveMonitor()); }},
+    {"1", [](){SetWorkspaceToMonitor(0, GetActiveMonitor()); }},
+    {"2", [](){SetWorkspaceToMonitor(1, GetActiveMonitor()); }},
 };
 
 
