@@ -552,9 +552,10 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
 
 void EnsureValidWorkspacesBetweenIndicesInclusive(int LowerBound, int UpperBound) {
     for (int i = LowerBound; i <= UpperBound; i++) {
-        if (WM.Workspaces.size()-1 < i) { // Current Index doesn't exist -- create a new one
+        if (static_cast<int>(WM.Workspaces.size()-1) < i) { // Current Index doesn't exist -- create a new one
             std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
             WM.Workspaces.push_back(NewWorkspace);
+            std::cout << "Created Workspace at Index " << i << ", ensuring a valid range" << std::endl;
         }
     }
 }
@@ -566,6 +567,7 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
     if (PreviousMonitor != nullptr) {
         TargetMonitor->ActiveWorkspace = -1;
         PreviousMonitor->ActiveWorkspace = PreviousWorkspace;
+        std::cout << "Swapping workspaces, set Previous monitor from workspace " << TargetMonitor << " to workspace " << PreviousWorkspace << std::endl;
     }
 
     if (!(WM.Workspaces[PreviousWorkspace]->RootContainer == nullptr)) {
@@ -589,6 +591,7 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
             }
         }
     }
+    std::cout << "Moved previous workspace " << PreviousWorkspace << std::endl;
 
     // Now we can set the target workspace to the target monitor
     EnsureValidWorkspacesBetweenIndicesInclusive(WM.Workspaces.size(), TargetWorkspace); // Incase we swap to a workspace that doesn't yet exist    
@@ -609,6 +612,7 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
             }
         }
     }
+    std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
 }
 
 
