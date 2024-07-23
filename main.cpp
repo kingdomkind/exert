@@ -1,6 +1,7 @@
 #include "config.h"
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -46,7 +47,7 @@ struct Protocols {
     xcb_atom_t DeleteWindow;
 };
 
-struct Container { // If Direction is None it will have a Value, otherwise it will have no value
+struct Container { // If Direction is None it will have a Value (and no left / right pointer), otherwise it will have no value (and have left / right pointers)
     Split Direction;
     
     std::shared_ptr<Container> Parent = nullptr;
@@ -89,9 +90,10 @@ struct WM {
 
 WM WM;
 
-const uint32_t BORDER_WIDTH = 3;
+const uint32_t BORDER_WIDTH = 0;
 const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
+const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000};
 
 bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
   // Get the supported protocols
@@ -279,7 +281,7 @@ std::shared_ptr<Monitor> GetMonitorFromWorkspace(int Workspace) {
 
 void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
-    std::cout << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
+    std::cout << "Updating to current splits: " << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
     std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace(GetWorkspaceAndContainerFromWindow(TargetContainer->Value->Window)->Workspace);
 
     if (TargetContainer->Value == nullptr) {
@@ -468,21 +470,21 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
 
     std::cout << "Removing container from WM" << std::endl;
     if (!(ToBeRemoved->Parent == nullptr)) {
-        std::shared_ptr<Container> PromotionContainer;
+        std::shared_ptr<Container> PromotionContainer; // We choose the other window to be promoted
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
             PromotionContainer = ToBeRemoved->Parent->Right;
         } else {
             PromotionContainer = ToBeRemoved->Parent->Left;
         }
 
-        if (ToBeRemoved->Parent->Parent != nullptr) {
+        if (ToBeRemoved->Parent->Parent != nullptr) { // Swapping the parent container to be the promotion container
             if (ToBeRemoved->Parent->Parent->Left == ToBeRemoved->Parent ) {
                 ToBeRemoved->Parent->Parent->Left = PromotionContainer;
             } else {
                 ToBeRemoved->Parent->Parent->Right = PromotionContainer;
             }
             PromotionContainer->Parent = ToBeRemoved->Parent->Parent;
-        } else {
+        } else { // Do the same thing, but no need to modify the parent's parent, as the parent of promotion container is already the root container
             ToBeRemoved->Parent = PromotionContainer;
             WM.Workspaces[Workspace]->RootContainer = PromotionContainer;
             PromotionContainer->Parent = nullptr;
@@ -491,13 +493,18 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
         std::cout << "After reconfigurement" << std::endl;
         PrintVisibleWindows();
 
+	// Update the splits for all affected windows
         std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(ToBeRemoved->Parent);
-
+        Stack.push(PromotionContainer);
         while (!Stack.empty()) {
             std::shared_ptr<Container> CurrentContainer = Stack.top();
+	    std::cout << "Iterating removal stack over: " << CurrentContainer << std::endl;
             Stack.pop();
 
+	    if (CurrentContainer == ToBeRemoved) {
+		std::cerr << "Impossible - This container should no longer exist! [EXIT]" << std::endl;
+		exit(EXIT_FAILURE);
+	    }
             if (CurrentContainer->Direction == NONE) {
                 UpdateWindowToCurrentSplits(CurrentContainer);
             } else {
@@ -543,10 +550,75 @@ void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     }
 }
 
+void EnsureValidWorkspacesBetweenIndicesInclusive(int LowerBound, int UpperBound) {
+    for (int i = LowerBound; i <= UpperBound; i++) {
+        if (WM.Workspaces.size()-1 < i) { // Current Index doesn't exist -- create a new one
+            std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
+            WM.Workspaces.push_back(NewWorkspace);
+        }
+    }
+}
+
+void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor> TargetMonitor) {
+    unsigned int PreviousWorkspace = GetActiveWorkspaceChecked(TargetMonitor);
+    std::shared_ptr<Monitor> PreviousMonitor = GetMonitorFromWorkspace(TargetWorkspace);
+
+    if (PreviousMonitor != nullptr) {
+        TargetMonitor->ActiveWorkspace = -1;
+        PreviousMonitor->ActiveWorkspace = PreviousWorkspace;
+    }
+
+    if (!(WM.Workspaces[PreviousWorkspace]->RootContainer == nullptr)) {
+        std::stack<std::shared_ptr<Container>> Stack;
+        Stack.push(WM.Workspaces[PreviousWorkspace]->RootContainer);
+
+        while (!Stack.empty()) {
+            std::shared_ptr<Container> CurrentContainer = Stack.top();
+            Stack.pop();
+
+            if (CurrentContainer->Direction == NONE) {
+                if (PreviousMonitor == nullptr) { // We are not stealing the workspace from another monitor, so set window positions elsewhere
+                    xcb_configure_window(WM.Connection, CurrentContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &OFFSCREEN_WINDOW_POSITION);
+                    xcb_flush(WM.Connection);
+                } else { // We are stealing the workspace from another monitor, so update splits since the other monitor has the old workspace now
+                    UpdateWindowToCurrentSplits(CurrentContainer);
+                }
+            } else {
+                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
+                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
+            }
+        }
+    }
+
+    // Now we can set the target workspace to the target monitor
+    EnsureValidWorkspacesBetweenIndicesInclusive(WM.Workspaces.size(), TargetWorkspace); // Incase we swap to a workspace that doesn't yet exist    
+    TargetMonitor->ActiveWorkspace = TargetWorkspace;
+    if (!(WM.Workspaces[TargetWorkspace]->RootContainer == nullptr)) {
+        std::stack<std::shared_ptr<Container>> Stack;
+        Stack.push(WM.Workspaces[TargetWorkspace]->RootContainer);
+
+        while (!Stack.empty()) {
+            std::shared_ptr<Container> CurrentContainer = Stack.top();
+            Stack.pop();
+
+            if (CurrentContainer->Direction == NONE) {
+                UpdateWindowToCurrentSplits(CurrentContainer);
+            } else {
+                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
+                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
+            }
+        }
+    }
+}
+
+
 std::unordered_map<std::string, std::function<void()>> InternalCommand = {
     {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", []() { ExitWM(); }},
+    {"1", [](){SetWorkspaceToMonitor(1, GetActiveMonitor()); }},
+    {"2", [](){SetWorkspaceToMonitor(2, GetActiveMonitor()); }},
 };
+
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
@@ -598,12 +670,13 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
     for (auto &MonitorLoop: WM.Monitors) {
         if (MonitorLoop->ActiveWorkspace != -1) {
             ClaimedWorkspaces.push_back(MonitorLoop->ActiveWorkspace);
+	    std::cout << "Added " << MonitorLoop->ActiveWorkspace << " to claimed workspaces!" << std::endl;
         }
     }
 
     for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
         auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
-        if (Found != ClaimedWorkspaces.end()) { // Allocates any spare workspaces
+        if (Found == ClaimedWorkspaces.end()) { // Allocates any spare workspaces
             Monitor->ActiveWorkspace = i;
             std::cout << "Assigned Monitor: " << Monitor->Name << ", Pre-existing Workspace: " << i << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
             return;
@@ -742,6 +815,16 @@ int main() {
     Test7.Modifier = XCB_MOD_MASK_1;
     Test7.Command = "vscodium";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_z), Test7});
+
+    Keybind Test8 = {};
+    Test8.Modifier = XCB_MOD_MASK_1;
+    Test8.Command = "exert-command 1";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_1), Test8});
+
+    Keybind Test9 = {};
+    Test9.Modifier = XCB_MOD_MASK_1;
+    Test9.Command = "exert-command 2";
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_2), Test9});
 
     StartupWM();
     RunEventLoop();
