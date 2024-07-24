@@ -10,6 +10,7 @@
 #include <ostream>
 #include <stack>
 #include <algorithm>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <xcb/xcb.h>
@@ -616,12 +617,10 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
 }
 
 
-std::unordered_map<std::string, std::function<void()>> InternalCommand = {
-    {"KillActive", []() { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
-    {"ExitWM", []() { ExitWM(); }},
-    {"1", [](){SetWorkspaceToMonitor(0, GetActiveMonitor()); }},
-    {"2", [](){SetWorkspaceToMonitor(1, GetActiveMonitor()); }},
-    {"3", [](){SetWorkspaceToMonitor(2, GetActiveMonitor()); }},
+std::unordered_map<std::string, std::function<void(const std::string &Arguments)>> InternalCommand = {
+    {"KillActive", [](const std::string &Arguments) { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
+    {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
+    {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
 };
 
 
@@ -636,12 +635,15 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
                 std::string Command = Pair->second.Command;
                 if (Command.rfind(Prefix, 0) == 0) {
                     std::string SubCommand = Command.substr(Prefix.length() + 1);
-                    auto Found = InternalCommand.find(SubCommand);
+                    size_t SpacePosition = SubCommand.find(' ');
+                    std::string CommandName = SubCommand.substr(0, SpacePosition);
+                    std::string Arguments = (SpacePosition != std::string::npos) ? SubCommand.substr(SpacePosition + 1) : "";
+                    auto Found = InternalCommand.find(CommandName);
                     if (Found != InternalCommand.end()) {
-                        std::cout << "Executing Internal Command: " << SubCommand << std::endl; 
-                        Found->second();
+                        std::cout << "Executing Internal Command: " << CommandName << std::endl; 
+                        Found->second(Arguments);
                     } else {
-                        std::cerr << "No matching function to call for: " << SubCommand << std::endl;
+                        std::cerr << "No matching function to call for: " << CommandName << std::endl;
                     }
                 } else if (fork() == 0) {
                     std::cout << "Executing: " << Command << std::endl;
@@ -823,17 +825,17 @@ int main() {
 
     Keybind Test8 = {};
     Test8.Modifier = XCB_MOD_MASK_4;
-    Test8.Command = "exert-command 1";
+    Test8.Command = "exert-command SetFocusedMonitorToWorkspace 0";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_1), Test8});
 
     Keybind Test9 = {};
     Test9.Modifier = XCB_MOD_MASK_4;
-    Test9.Command = "exert-command 2";
+    Test9.Command = "exert-command SetFocusedMonitorToWorkspace 1";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_2), Test9});
 
     Keybind Test10 = {};
     Test10.Modifier = XCB_MOD_MASK_4;
-    Test10.Command = "exert-command 3";
+    Test10.Command = "exert-command SetFocusedMonitorToWorkspace 2";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_3), Test10});
 
     StartupWM();
