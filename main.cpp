@@ -827,6 +827,9 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "nautilus"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_e), {XCB_MOD_MASK_4, "notify-send \"$(date)\""}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_4, "kitty -o allow_remote_control=yes sh -c \"sudo vpn_handler up\""}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_4, "kitty -o allow_remote_control=yes sh -c \"sudo vpn_handler down\""}});
+
     // Workspaces
     Runtime.Keybinds.insert({KeysymToKeycode(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_2), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}});
