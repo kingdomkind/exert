@@ -7,15 +7,12 @@
 #include <xcb/randr.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/xproto.h>
+#include <X11/keysym.h>
+
 
 struct Keybind {
     xcb_mod_mask_t Modifier;
     std::string Command;
-};
-
-struct Runtime {
-    // Key is the letter / number / whatever associated with the keybind
-    std::multimap<unsigned int, struct Keybind> Keybinds;
 };
 
 enum Split {
@@ -85,7 +82,12 @@ struct WM {
     Protocols ProtocolsContainer;
 };
 
-static WM WM;
+struct Runtime {
+    // Key is the letter / number / whatever associated with the keybind
+    std::multimap<unsigned int, struct Keybind> Keybinds;
+    std::multimap<std::string, std::string> Exports; // Environment Variables
+    std::string StartupCommands; // Commands to run at boot
+};
 
 const uint32_t BORDER_WIDTH = 0;
 const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
@@ -93,10 +95,10 @@ const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000};
 
 const std::string PIPE_PATH = "/tmp/wmking-runtime";
+
 static std::thread ListeningThread;
 static Runtime Runtime;
+static WM WM;
 
-void WritePipe(std::string Message);
-std::string ReadPipe();
 void CheckAndCreatePipe();
 void StartPipeListener();

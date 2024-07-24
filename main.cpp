@@ -1,4 +1,4 @@
-#include "config.h"
+#include "includes.h" // See structs n stuff
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -187,11 +187,11 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
 void StartupWM() {
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "Changed checked window attributes" << std::endl;
-    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
+    /* xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {
         xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-    }
+    } */
 
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
@@ -582,7 +582,6 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 
 void RunEventLoop() {
     std::cout << "Running the event loop" << std::endl;
-    if (fork() == 0) { std::cout << "showing kitty" << std::endl; execl("/bin/sh", "/bin/sh", "-c", "kitty", (void *)NULL);}
 
     while (true) {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
@@ -679,9 +678,13 @@ void InitialiseMonitors() {
 }
 
 int main() {
+    /* EXPORTS */
+    Runtime.Exports.insert({"XCURSOR_SIZE", "24"});
+    Runtime.Exports.insert({"GTK_THEME", "Adwaita:dark"});
 
-    CheckAndCreatePipe();
-    StartPipeListener();
+    for (auto Pair: Runtime.Exports) {
+        setenv(Pair.first.c_str(), Pair.second.c_str(), 1);
+    }
 
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
@@ -708,6 +711,33 @@ int main() {
 
     InitialiseMonitors();
 
+    /* STARTUP COMMANDS */
+    //for (std::string Command: Runtime.StartupCommands) {
+    //    std::cout << "Executing: " << Command << std::endl;
+    //    execl("/bin/sh", "/bin/sh", "-c", Command.c_str(), (void *)NULL);
+    //}
+
+    /* KEYBINDS */
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "librewolf"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_f), {XCB_MOD_MASK_4, "armcord"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "kitty"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "nautilus"}});
+    // Workspaces
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_2), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_3), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 2"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_4), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 3"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_5), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 4"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_6), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 5"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_7), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 6"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_8), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 7"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_9), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}});
+
     // Get Protocols
     xcb_intern_atom_reply_t* Protocols = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_PROTOCOLS"), "WM_PROTOCOLS"), nullptr);
     WM.ProtocolsContainer.Protocols = Protocols->atom;
@@ -716,56 +746,6 @@ int main() {
     xcb_intern_atom_reply_t* DeleteWindow = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_DELETE_WINDOW"), "WM_DELETE_WINDOW"), nullptr);
     WM.ProtocolsContainer.DeleteWindow = DeleteWindow->atom;
     free(DeleteWindow);
-
-    Keybind Test = {};
-    Test.Modifier = XCB_MOD_MASK_4;
-    Test.Command = "rofi -show drun";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_space), Test});
-
-    Keybind Test2 = {};
-    Test2.Modifier = XCB_MOD_MASK_4;
-    Test2.Command = "exert-command ExitWM";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
-
-    Keybind Test3 = {};
-    Test3.Modifier = XCB_MOD_MASK_4;
-    Test3.Command = "exert-command KillActive";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
-
-    Keybind Test4 = {};
-    Test4.Modifier = XCB_MOD_MASK_4;
-    Test4.Command = "librewolf";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_d), Test4});
-
-    Keybind Test5 = {};
-    Test5.Modifier = XCB_MOD_MASK_4;
-    Test5.Command = "armcord";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_f), Test5});
-
-    Keybind Test6 = {};
-    Test6.Modifier = XCB_MOD_MASK_4;
-    Test6.Command = "kitty";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_q), Test6});
-
-    Keybind Test7 = {};
-    Test7.Modifier = XCB_MOD_MASK_4;
-    Test7.Command = "vscodium";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_z), Test7});
-
-    Keybind Test8 = {};
-    Test8.Modifier = XCB_MOD_MASK_4;
-    Test8.Command = "exert-command SetFocusedMonitorToWorkspace 0";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_1), Test8});
-
-    Keybind Test9 = {};
-    Test9.Modifier = XCB_MOD_MASK_4;
-    Test9.Command = "exert-command SetFocusedMonitorToWorkspace 1";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_2), Test9});
-
-    Keybind Test10 = {};
-    Test10.Modifier = XCB_MOD_MASK_4;
-    Test10.Command = "exert-command SetFocusedMonitorToWorkspace 2";
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_3), Test10});
 
     StartupWM();
     RunEventLoop();
