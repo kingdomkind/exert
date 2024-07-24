@@ -805,6 +805,7 @@ int main() {
 
     Runtime.StartupCommands.insert("dunst");
     Runtime.StartupCommands.insert("flameshot");
+    Runtime.StartupCommands.insert("picom");
 
     /* STARTUP COMMANDS */
     for (auto Command: Runtime.StartupCommands) {
