@@ -787,52 +787,52 @@ int main() {
     free(DeleteWindow);
 
     Keybind Test = {};
-    Test.Modifier = XCB_MOD_MASK_1;
-    Test.Command = "rofi -show run";
+    Test.Modifier = XCB_MOD_MASK_4;
+    Test.Command = "rofi -show drun";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_space), Test});
 
     Keybind Test2 = {};
-    Test2.Modifier = XCB_MOD_MASK_1;
+    Test2.Modifier = XCB_MOD_MASK_4;
     Test2.Command = "exert-command ExitWM";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_m), Test2});
 
     Keybind Test3 = {};
-    Test3.Modifier = XCB_MOD_MASK_1;
+    Test3.Modifier = XCB_MOD_MASK_4;
     Test3.Command = "exert-command KillActive";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), Test3});
 
     Keybind Test4 = {};
-    Test4.Modifier = XCB_MOD_MASK_1;
+    Test4.Modifier = XCB_MOD_MASK_4;
     Test4.Command = "librewolf";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_d), Test4});
 
     Keybind Test5 = {};
-    Test5.Modifier = XCB_MOD_MASK_1;
+    Test5.Modifier = XCB_MOD_MASK_4;
     Test5.Command = "armcord";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_f), Test5});
 
     Keybind Test6 = {};
-    Test6.Modifier = XCB_MOD_MASK_1;
+    Test6.Modifier = XCB_MOD_MASK_4;
     Test6.Command = "kitty";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_q), Test6});
 
     Keybind Test7 = {};
-    Test7.Modifier = XCB_MOD_MASK_1;
+    Test7.Modifier = XCB_MOD_MASK_4;
     Test7.Command = "vscodium";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_z), Test7});
 
     Keybind Test8 = {};
-    Test8.Modifier = XCB_MOD_MASK_1;
+    Test8.Modifier = XCB_MOD_MASK_4;
     Test8.Command = "exert-command 1";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_1), Test8});
 
     Keybind Test9 = {};
-    Test9.Modifier = XCB_MOD_MASK_1;
+    Test9.Modifier = XCB_MOD_MASK_4;
     Test9.Command = "exert-command 2";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_2), Test9});
 
     Keybind Test10 = {};
-    Test10.Modifier = XCB_MOD_MASK_1;
+    Test10.Modifier = XCB_MOD_MASK_4;
     Test10.Command = "exert-command 3";
     Runtime.Keybinds.insert({KeysymToKeycode(XK_3), Test10});
 
