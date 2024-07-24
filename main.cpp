@@ -13,6 +13,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
@@ -98,7 +99,7 @@ struct Runtime {
     // Key is the letter / number / whatever associated with the keybind
     std::multimap<unsigned int, struct Keybind> Keybinds;
     std::multimap<std::string, std::string> Exports; // Environment Variables
-    std::string StartupCommands; // Commands to run at boot
+    std::unordered_set<std::string> StartupCommands; // Commands to run at boot
 };
 
 const uint32_t BORDER_WIDTH = 0;
@@ -802,11 +803,16 @@ int main() {
 
     InitialiseMonitors();
 
+    Runtime.StartupCommands.insert("dunst");
+    Runtime.StartupCommands.insert("flameshot");
+
     /* STARTUP COMMANDS */
-    //for (std::string Command: Runtime.StartupCommands) {
-    //    std::cout << "Executing: " << Command << std::endl;
-    //    execl("/bin/sh", "/bin/sh", "-c", Command.c_str(), (void *)NULL);
-    //}
+    for (auto Command: Runtime.StartupCommands) {
+        if (fork() == 0) {
+            std::cout << "Executing: " << Command << std::endl;
+            execl("/bin/sh", "/bin/sh", "-c", Command.c_str(), (void *)NULL);
+        }
+    }
 
     /* KEYBINDS */
     Runtime.Keybinds.insert({KeysymToKeycode(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
