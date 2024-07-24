@@ -21,81 +21,6 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/randr.h>
 
-
-enum Split {
-    VERTICAL, // 0
-    HORIZONTAL, // 1
-    NONE, // 2
-};
-enum WindowSegment {
-    LEFT, // Remaining 2/4 middle left
-    RIGHT, // Remaining 2/4 middle right
-    UP, // Top 1/4 of the window
-    DOWN, // Bottom 1/4 of the window
-};
-
-struct Coordinate {
-    float X;
-    float Y;
-};
-
-struct Window {
-    xcb_window_t Window;
-};
-
-struct Protocols {
-    xcb_atom_t Protocols;
-    xcb_atom_t DeleteWindow;
-};
-
-struct Container { // If Direction is None it will have a Value (and no left / right pointer), otherwise it will have no value (and have left / right pointers)
-    Split Direction;
-    
-    std::shared_ptr<Container> Parent = nullptr;
-    std::shared_ptr<Container> Left = nullptr;
-    std::shared_ptr<Container> Right = nullptr;
-
-    std::shared_ptr<Window> Value = nullptr;
-};
-
-struct Workspace {
-    std::shared_ptr<Container> RootContainer = nullptr;
-};
-
-struct Monitor {
-    xcb_randr_output_t Output;
-    std::string Name;
-    int X;
-    int Y;
-    int Width;
-    int Height;
-
-    int ActiveWorkspace = -1;
-};
-
-struct WindowMetadata {
-    std::shared_ptr<struct Container> Container;
-    int Workspace = -1;
-};
-
-struct WM {
-    xcb_connection_t* Connection;
-    xcb_screen_t* Screen;
-    xcb_key_symbols_t* Keysyms;
-    std::shared_ptr<Container> FocusedContainer;
-    std::vector<std::shared_ptr<Monitor>> Monitors;
-    std::vector<std::shared_ptr<Workspace>> Workspaces;
-
-    Protocols ProtocolsContainer;
-};
-
-WM WM;
-
-const uint32_t BORDER_WIDTH = 0;
-const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
-const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
-const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000};
-
 bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
   // Get the supported protocols
     xcb_icccm_get_wm_protocols_reply_t Protocols;
@@ -754,6 +679,10 @@ void InitialiseMonitors() {
 }
 
 int main() {
+
+    CheckAndCreatePipe();
+    StartPipeListener();
+
     // Create a connection
     WM.Connection = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(WM.Connection)) {
