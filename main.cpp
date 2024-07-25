@@ -343,6 +343,9 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     uint32_t Parameters[] = {X, Y, Width, Height, BORDER_WIDTH};
     xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
+    xcb_size_hints_t SizeHints;
+    xcb_icccm_size_hints_set_max_size(&SizeHints, Width, Height);
+    xcb_icccm_set_wm_normal_hints(WM.Connection, TargetContainer->Value->Window, &SizeHints);
     xcb_flush(WM.Connection);
     std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
 }
@@ -674,20 +677,6 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
-/*
-void OnClientMessage(const xcb_generic_event_t* NextEvent) {
-    xcb_client_message_event_t* Event = (xcb_client_message_event_t*)NextEvent;
-    std::cout << "Entered Client Message" << std::endl;
-    //if (Event->type == WM.ProtocolsContainer.NetWmState) {
-        if (Event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || Event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
-            std::cout << "Ignoring fullscreen request for window: " << Event->window << std::endl;
-            return;
-    //    }
-    } else {
-        std::cout << "Failed" << std::endl;
-    }
-} */
-
 void RunEventLoop() {
     std::cout << "Running the event loop" << std::endl;
 
@@ -696,10 +685,9 @@ void RunEventLoop() {
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            //case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
-            //case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
+            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
-            //case XCB_CLIENT_MESSAGE: { OnClientMessage(NextEvent); break; }
             default: { break; }
         }
     }
@@ -786,10 +774,14 @@ void InitialiseMonitors() {
     free(ResourcesReply);
 }
 
-void GetAtom(std::string AtomName, xcb_atom_t* ToAssignTo) {
+xcb_atom_t GetAtom(std::string AtomName) {
     xcb_intern_atom_reply_t* Atom = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen(AtomName.c_str()), AtomName.c_str()), nullptr);
-    ToAssignTo = &Atom->atom;
+    if (!Atom) {
+        std::cerr << "Failed to get Atom: " << AtomName << " [EXIT]" << std::endl;
+    }
+    xcb_atom_t ReturnAtom = Atom->atom;
     free(Atom); 
+    return ReturnAtom;
 }
 
 int main() {
@@ -865,11 +857,8 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_9), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}});
 
     // Get Protocols
-    GetAtom("WM_PROTOCOLS", &WM.ProtocolsContainer.Protocols);
-    GetAtom("WM_DELETE_WINDOW", &WM.ProtocolsContainer.DeleteWindow);
-    GetAtom("_NET_WM_STATE", &WM.ProtocolsContainer.NetWmState);
-    GetAtom("_NET_WM_STATE_FULLSCREEN", &WM.ProtocolsContainer.NetWmStateFullscreen);
-
+    WM.ProtocolsContainer.Protocols = GetAtom("WM_PROTOCOLS");
+    WM.ProtocolsContainer.DeleteWindow = GetAtom("WM_DELETE_WINDOW");
 
     StartupWM();
     RunEventLoop();
