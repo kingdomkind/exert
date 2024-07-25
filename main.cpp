@@ -52,6 +52,8 @@ struct Window {
 struct Protocols {
     xcb_atom_t Protocols;
     xcb_atom_t DeleteWindow;
+    xcb_atom_t NetWmState;
+    xcb_atom_t NetWmStateFullscreen;
 };
 
 struct Container { // If Direction is None it will have a Value (and no left / right pointer), otherwise it will have no value (and have left / right pointers)
@@ -672,6 +674,16 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
+void OnClientMessage(const xcb_generic_event_t* NextEvent) {
+    xcb_client_message_event_t* Event = (xcb_client_message_event_t*)NextEvent;
+    if (Event->type == WM.ProtocolsContainer.NetWmState) {
+        if (Event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || Event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
+            std::cout << "Ignoring fullscreen request for window: " << Event->window << std::endl;
+            return;
+        }
+    }
+}
+
 void RunEventLoop() {
     std::cout << "Running the event loop" << std::endl;
 
@@ -683,6 +695,7 @@ void RunEventLoop() {
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
+            case XCB_CLIENT_MESSAGE: {  }
             default: { break; }
         }
     }
@@ -769,6 +782,12 @@ void InitialiseMonitors() {
     free(ResourcesReply);
 }
 
+void GetAtom(std::string AtomName, xcb_atom_t* ToAssignTo) {
+    xcb_intern_atom_reply_t* Atom = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen(AtomName.c_str()), AtomName.c_str()), nullptr);
+    ToAssignTo = &Atom->atom;
+    free(Atom); 
+}
+
 int main() {
     /* EXPORTS */
     Runtime.Exports.insert({"XCURSOR_SIZE", "24"});
@@ -824,7 +843,7 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "kitty"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "nautilus"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "thunar"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_e), {XCB_MOD_MASK_4, "notify-send \"$(date)\""}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_4, "kitty -o allow_remote_control=yes sh -c \"sudo vpn_handler up\""}});
@@ -842,13 +861,11 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_9), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}});
 
     // Get Protocols
-    xcb_intern_atom_reply_t* Protocols = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_PROTOCOLS"), "WM_PROTOCOLS"), nullptr);
-    WM.ProtocolsContainer.Protocols = Protocols->atom;
-    free(Protocols);
+    GetAtom("WM_PROTOCOLS", &WM.ProtocolsContainer.Protocols);
+    GetAtom("WM_DELETE_WINDOW", &WM.ProtocolsContainer.DeleteWindow);
+    GetAtom("_NET_WM_STATE", &WM.ProtocolsContainer.NetWmState);
+    GetAtom("_NET_WM_STATE_FULLSCREEN", &WM.ProtocolsContainer.NetWmStateFullscreen);
 
-    xcb_intern_atom_reply_t* DeleteWindow = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen("WM_DELETE_WINDOW"), "WM_DELETE_WINDOW"), nullptr);
-    WM.ProtocolsContainer.DeleteWindow = DeleteWindow->atom;
-    free(DeleteWindow);
 
     StartupWM();
     RunEventLoop();
