@@ -698,7 +698,7 @@ void RunEventLoop() {
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
-            case XCB_CLIENT_MESSAGE: {  }
+            case XCB_CLIENT_MESSAGE: { OnClientMessage(NextEvent); break; }
             default: { break; }
         }
     }
