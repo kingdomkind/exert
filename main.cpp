@@ -676,11 +676,14 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 
 void OnClientMessage(const xcb_generic_event_t* NextEvent) {
     xcb_client_message_event_t* Event = (xcb_client_message_event_t*)NextEvent;
+    std::cout << "Entered Client Message" << std::endl;
     if (Event->type == WM.ProtocolsContainer.NetWmState) {
         if (Event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || Event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
             std::cout << "Ignoring fullscreen request for window: " << Event->window << std::endl;
             return;
         }
+    } else {
+        std::cout << "Failed" << std::endl;
     }
 }
 
