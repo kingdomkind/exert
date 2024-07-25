@@ -674,18 +674,19 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
+/*
 void OnClientMessage(const xcb_generic_event_t* NextEvent) {
     xcb_client_message_event_t* Event = (xcb_client_message_event_t*)NextEvent;
     std::cout << "Entered Client Message" << std::endl;
-    if (Event->type == WM.ProtocolsContainer.NetWmState) {
+    //if (Event->type == WM.ProtocolsContainer.NetWmState) {
         if (Event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || Event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
             std::cout << "Ignoring fullscreen request for window: " << Event->window << std::endl;
             return;
-        }
+    //    }
     } else {
         std::cout << "Failed" << std::endl;
     }
-}
+} */
 
 void RunEventLoop() {
     std::cout << "Running the event loop" << std::endl;
@@ -698,7 +699,31 @@ void RunEventLoop() {
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
-            case XCB_CLIENT_MESSAGE: { OnClientMessage(NextEvent); break; }
+            //case XCB_CLIENT_MESSAGE: { OnClientMessage(NextEvent); break; }
+                       case XCB_CONFIGURE_REQUEST: {
+                xcb_configure_request_event_t *cr = (xcb_configure_request_event_t *)NextEvent;
+
+                // Prepare to override the size and position with the current values
+                uint16_t width = 800;  // Set your desired width here
+                uint16_t height = 600; // Set your desired height here
+
+                // Respond to the configure request
+                xcb_configure_notify_event_t configure_notify;
+                configure_notify.response_type = XCB_CONFIGURE_NOTIFY;
+                configure_notify.event = cr->window;
+                configure_notify.window = cr->window;
+                configure_notify.x = cr->x;  // Keep the requested position
+                configure_notify.y = cr->y;
+                configure_notify.width = width;  // Override the requested size
+                configure_notify.height = height;
+                configure_notify.border_width = cr->border_width;
+                configure_notify.above_sibling = cr->sibling;
+                configure_notify.override_redirect = false;
+                xcb_send_event(WM.Connection, false, cr->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *)&configure_notify);
+                xcb_flush(WM.Connection);
+
+                break;
+            }
             default: { break; }
         }
     }
