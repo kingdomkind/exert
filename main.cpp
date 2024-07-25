@@ -681,6 +681,16 @@ void handle_client_message(xcb_client_message_event_t* event) {
         if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen ) {
             std::cout << "Ignoring fullscreen request for window " << event->window << std::endl;
             // Do nothing to ignore the fullscreen request
+                       xcb_change_property(
+                WM.Connection,
+                XCB_PROP_MODE_REPLACE,
+                event->window,
+                WM.ProtocolsContainer.NetWmState,
+                XCB_ATOM_ATOM,
+                32,
+                0,
+                NULL
+            );
             return;
         }
     }
