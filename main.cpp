@@ -703,25 +703,27 @@ void RunEventLoop() {
                        case XCB_CONFIGURE_REQUEST: {
                 xcb_configure_request_event_t *cr = (xcb_configure_request_event_t *)NextEvent;
 
-                // Prepare to override the size and position with the current values
-                uint16_t width = 800;  // Set your desired width here
-                uint16_t height = 600; // Set your desired height here
+                // Get the current geometry of the window
+                xcb_get_geometry_cookie_t geom_cookie = xcb_get_geometry(WM.Connection, cr->window);
+                xcb_get_geometry_reply_t* geom = xcb_get_geometry_reply(WM.Connection, geom_cookie, nullptr);
+                if (!geom) break;
 
-                // Respond to the configure request
+                // Respond with the current size and position to effectively ignore the resize request
                 xcb_configure_notify_event_t configure_notify;
                 configure_notify.response_type = XCB_CONFIGURE_NOTIFY;
                 configure_notify.event = cr->window;
                 configure_notify.window = cr->window;
-                configure_notify.x = cr->x;  // Keep the requested position
-                configure_notify.y = cr->y;
-                configure_notify.width = width;  // Override the requested size
-                configure_notify.height = height;
-                configure_notify.border_width = cr->border_width;
+                configure_notify.x = geom->x;  // Keep current position
+                configure_notify.y = geom->y;
+                configure_notify.width = geom->width;  // Keep current size
+                configure_notify.height = geom->height;
+                configure_notify.border_width = geom->border_width;
                 configure_notify.above_sibling = cr->sibling;
                 configure_notify.override_redirect = false;
                 xcb_send_event(WM.Connection, false, cr->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *)&configure_notify);
                 xcb_flush(WM.Connection);
 
+                free(geom);
                 break;
             }
             default: { break; }
