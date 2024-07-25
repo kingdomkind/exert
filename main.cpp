@@ -343,9 +343,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     uint32_t Parameters[] = {X, Y, Width, Height, BORDER_WIDTH};
     xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
-    xcb_size_hints_t SizeHints;
-    xcb_icccm_size_hints_set_max_size(&SizeHints, Width, Height);
-    xcb_icccm_set_wm_normal_hints(WM.Connection, TargetContainer->Value->Window, &SizeHints);
     xcb_flush(WM.Connection);
     std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
 }
@@ -677,6 +674,20 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
+void handle_client_message(xcb_client_message_event_t* event) {
+    if (event->type == WM.ProtocolsContainer.NetWmState) {
+        std::cout << "Passed One" << std::endl; 
+        // Check if the message is a fullscreen request
+        if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen ) {
+            std::cout << "Ignoring fullscreen request for window " << event->window << std::endl;
+            // Do nothing to ignore the fullscreen request
+            return;
+        }
+    }
+
+    // Handle other client messages
+}
+
 void RunEventLoop() {
     std::cout << "Running the event loop" << std::endl;
 
@@ -688,6 +699,7 @@ void RunEventLoop() {
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
+            case XCB_CLIENT_MESSAGE: { handle_client_message((xcb_client_message_event_t*)NextEvent); break; }
             default: { break; }
         }
     }
@@ -859,6 +871,8 @@ int main() {
     // Get Protocols
     WM.ProtocolsContainer.Protocols = GetAtom("WM_PROTOCOLS");
     WM.ProtocolsContainer.DeleteWindow = GetAtom("WM_DELETE_WINDOW");
+    WM.ProtocolsContainer.NetWmState = GetAtom("_NET_WM_STATE");
+    WM.ProtocolsContainer.NetWmStateFullscreen = GetAtom("_NET_WM_STATE_FULLSCREEN");
 
     StartupWM();
     RunEventLoop();
