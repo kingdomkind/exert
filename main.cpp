@@ -675,8 +675,6 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
     if (event->type == WM.ProtocolsContainer.NetWmState) {
         if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
             std::cout << "Ignoring fullscreen request for window " << event->window << std::endl;
-                std::this_thread::sleep_for(std::chrono::seconds(3));
-            UpdateWindowToCurrentSplits(GetWorkspaceAndContainerFromWindow(event->window)->Container);
             return;
         }
     }
@@ -694,6 +692,7 @@ void RunEventLoop() {
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
+            case XCB_CONFIGURE_NOTIFY: { std::cout << "Configured had been done bruh" << std::endl; break; }
             default: { break; }
         }
     }
