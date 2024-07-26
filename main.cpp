@@ -675,6 +675,7 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
     if (event->type == WM.ProtocolsContainer.NetWmState) {
         if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
             std::cout << "Ignoring fullscreen request for window " << event->window << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(3));
             UpdateWindowToCurrentSplits(GetWorkspaceAndContainerFromWindow(event->window)->Container);
             return;
         }
