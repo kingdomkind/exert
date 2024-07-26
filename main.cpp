@@ -683,12 +683,7 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
             xcb_query_tree_reply_t* reply = xcb_query_tree_reply(WM.Connection, cookie, nullptr);
             xcb_window_t parent = reply->parent;
             free(reply);
-            UpdateWindowToCurrentSplits(GetWorkspaceAndContainerFromWindow(parent)->Container);
-            //xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, parent), NULL);
-            //uint32_t Parameters[] = {static_cast<uint32_t>(WindowGeometry->x), static_cast<uint32_t>(WindowGeometry->y), WindowGeometry->width, WindowGeometry->height, BORDER_WIDTH};
-            //xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
-            //xcb_flush(WM.Connection);
-
+            std::cout << "Parent: " << parent << std::endl;
             return;
         }
     }
