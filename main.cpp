@@ -692,7 +692,7 @@ void RunEventLoop() {
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
-            case XCB_CONFIGURE_NOTIFY: { std::cout << "Configured had been done bruh" << std::endl; break; }
+            case XCB_CONFIGURE_NOTIFY: { UpdateWindowToCurrentSplits(GetWorkspaceAndContainerFromWindow(((xcb_configure_notify_event_t*)NextEvent)->window)->Container); break; }
             default: { break; }
         }
     }
