@@ -684,6 +684,7 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
             xcb_window_t parent = reply->parent;
             free(reply);
             std::cout << "Parent: " << parent << std::endl;
+            PrintVisibleWindows();
             return;
         }
     }
