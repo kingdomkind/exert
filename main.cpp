@@ -681,7 +681,7 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
 }
 
 void ConfigureWindow(const xcb_generic_event_t* NextEvent) {
-    xcb_configure_notify_event_t* Event = (xcb_configure_notify_event_t*)NextEvent;
+    xcb_configure_request_event_t* Event = (xcb_configure_request_event_t*)NextEvent;
     std::cout << "Eneted" << std::endl;
 
     //auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
@@ -704,7 +704,7 @@ void RunEventLoop() {
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
-            case XCB_CONFIGURE_NOTIFY: { ConfigureWindow(NextEvent); break; }
+            case XCB_CONFIGURE_REQUEST: { ConfigureWindow(NextEvent); break; }
             default: { break; }
         }
     }
