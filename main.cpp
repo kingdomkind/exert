@@ -699,6 +699,7 @@ void RunEventLoop() {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
+            case XCB_MAP_NOTIFY: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
