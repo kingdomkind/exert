@@ -2,6 +2,8 @@
 
 #> Exit as soon as an error occurs
 set -e
+#> Set working directory to script directory
+cd "$(dirname "$(realpath "$0")")"
 
 #> Compile & Run
 rm -f -- log.txt

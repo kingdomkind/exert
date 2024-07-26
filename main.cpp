@@ -109,8 +109,6 @@ const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
 const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
 const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000};
 
-const std::string PIPE_PATH = "/tmp/wmking-runtime";
-
 static std::thread ListeningThread;
 static Runtime Runtime;
 static WM WM;
@@ -635,11 +633,10 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
     std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
 }
 
-
 std::unordered_map<std::string, std::function<void(const std::string &Arguments)>> InternalCommand = {
     {"KillActive", [](const std::string &Arguments) { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
-    {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
+    {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
 };
 
 
@@ -674,28 +671,14 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
-void handle_client_message(xcb_client_message_event_t* event) {
+void handle_fullscreen_request(xcb_client_message_event_t* event) {
     if (event->type == WM.ProtocolsContainer.NetWmState) {
-        std::cout << "Passed One" << std::endl; 
-        // Check if the message is a fullscreen request
-        if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen ) {
+        if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
             std::cout << "Ignoring fullscreen request for window " << event->window << std::endl;
-            // Do nothing to ignore the fullscreen request
-                       xcb_change_property(
-                WM.Connection,
-                XCB_PROP_MODE_REPLACE,
-                event->window,
-                WM.ProtocolsContainer.NetWmState,
-                XCB_ATOM_ATOM,
-                32,
-                0,
-                NULL
-            );
+            UpdateWindowToCurrentSplits(GetWorkspaceAndContainerFromWindow(event->window)->Container);
             return;
         }
     }
-
-    // Handle other client messages
 }
 
 void RunEventLoop() {
@@ -709,7 +692,7 @@ void RunEventLoop() {
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
-            case XCB_CLIENT_MESSAGE: { handle_client_message((xcb_client_message_event_t*)NextEvent); break; }
+            case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
             default: { break; }
         }
     }
@@ -838,11 +821,15 @@ int main() {
     }
     std::cout << "Initialised the key symbols" << std::endl;
 
+    // Setup Monitor resolution, positions and refresh rates
+    system("xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --left-of DP-2");
+    system("xrandr --output DP-2 --mode 3840x2160 --rate 119.91");
     InitialiseMonitors();
 
     Runtime.StartupCommands.insert("dunst");
     Runtime.StartupCommands.insert("flameshot");
     Runtime.StartupCommands.insert("picom");
+    Runtime.StartupCommands.insert("/home/pika/Config/scripts/wallpaper/change-wallpaper.sh");
 
     /* STARTUP COMMANDS */
     for (auto Command: Runtime.StartupCommands) {
@@ -856,16 +843,17 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "librewolf"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "brave"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_f), {XCB_MOD_MASK_4, "armcord"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "kitty"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "thunar"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_e), {XCB_MOD_MASK_4, "notify-send \"$(date)\""}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_4, "kitty -o allow_remote_control=yes sh -c \"sudo vpn_handler up\""}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_4, "kitty -o allow_remote_control=yes sh -c \"sudo vpn_handler down\""}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_r), {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}});
 
     // Workspaces
     Runtime.Keybinds.insert({KeysymToKeycode(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
