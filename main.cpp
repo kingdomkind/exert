@@ -675,6 +675,9 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
     if (event->type == WM.ProtocolsContainer.NetWmState) {
         if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
             std::cout << "fullscreen request for window " << event->window << std::endl;
+            uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+            xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
+            xcb_flush(WM.Connection);
             return;
         }
     }
