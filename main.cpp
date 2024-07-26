@@ -680,33 +680,20 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
     }
 }
 
-void ConfigureWindow(const xcb_generic_event_t* NextEvent) {
-    xcb_configure_request_event_t* Event = (xcb_configure_request_event_t*)NextEvent;
-    std::cout << "Eneted" << std::endl;
-
-    //auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
-    //if (Result != nullptr) {
-        std::cout << "Entered 2" << std::endl;
-        xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, Event->window), NULL);
-        std::cout << "CONFIGURE: Window " << Event->window << ", Width" << WindowGeometry->width << ", Height" << WindowGeometry->height << ", X" << WindowGeometry->x << ", Y" << WindowGeometry->y  << std::endl;
-    //}
-}
-
 void RunEventLoop() {
     std::cout << "Running the event loop" << std::endl;
 
     while (true) {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
         switch (NextEvent->response_type & ~0x80) {
-            case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
+            //case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_MAP_NOTIFY: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
-            case XCB_CONFIGURE_REQUEST: { ConfigureWindow(NextEvent); break; }
-            default: { std::cout << "Ignored Response: " << (int)NextEvent->response_type << std::endl; break; }
+            default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
         }
     }
 }
