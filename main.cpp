@@ -705,7 +705,7 @@ void RunEventLoop() {
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
             case XCB_CONFIGURE_REQUEST: { ConfigureWindow(NextEvent); break; }
-            default: { break; }
+            default: { std::cout << "Ignored Response: " << NextEvent << std::endl; break; }
         }
     }
 }
