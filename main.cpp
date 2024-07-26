@@ -682,6 +682,7 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
 
 void ConfigureWindow(const xcb_generic_event_t* NextEvent) {
     xcb_configure_notify_event_t* Event = (xcb_configure_notify_event_t*)NextEvent;
+    std::cout << "The window has been configured" << std::endl;
 
     auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
     if (Result != nullptr) {
