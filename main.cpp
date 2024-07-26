@@ -682,11 +682,13 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
 
 void ConfigureWindow(const xcb_generic_event_t* NextEvent) {
     xcb_configure_notify_event_t* Event = (xcb_configure_notify_event_t*)NextEvent;
-    std::cout << "The window has been configured" << std::endl;
+    std::cout << "Eneted" << std::endl;
 
     auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
     if (Result != nullptr) {
-        UpdateWindowToCurrentSplits(Result->Container);
+        std::cout << "Entered 2" << std::endl;
+        xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, Event->window), NULL);
+        std::cout << "CONFIGURE: Window " << Event->window << ", Width" << WindowGeometry->width << ", Height" << WindowGeometry->height << ", X" << WindowGeometry->x << ", Y" << WindowGeometry->y  << std::endl;
     }
 }
 
