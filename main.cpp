@@ -343,10 +343,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
     xcb_flush(WM.Connection);
     std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
-
-                uint32_t values[] = { XCB_STACK_MODE_BELOW };
-            xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_STACK_MODE, values);
-            xcb_flush(WM.Connection);
 }
 
 
@@ -678,10 +674,20 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 void handle_fullscreen_request(xcb_client_message_event_t* event) {
     if (event->type == WM.ProtocolsContainer.NetWmState) {
         if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
-            std::cout << "fullscreen request for window " << event->window << std::endl;
+            std::cout << "fullscreen request for window " << event->window << std::endl; /*
             uint32_t values[] = { XCB_STACK_MODE_ABOVE };
             xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
+            xcb_flush(WM.Connection); */
+
+            xcb_query_tree_cookie_t cookie = xcb_query_tree(WM.Connection, event->window);
+            xcb_query_tree_reply_t* reply = xcb_query_tree_reply(WM.Connection, cookie, nullptr);
+            xcb_window_t parent = reply->parent;
+            free(reply);
+            xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, parent), NULL);
+            uint32_t Parameters[] = {static_cast<uint32_t>(WindowGeometry->x), static_cast<uint32_t>(WindowGeometry->y), WindowGeometry->width, WindowGeometry->height, BORDER_WIDTH};
+            xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
             xcb_flush(WM.Connection);
+
             return;
         }
     }
