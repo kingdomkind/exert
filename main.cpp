@@ -682,6 +682,11 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
             xcb_query_tree_cookie_t cookie = xcb_query_tree(WM.Connection, event->window);
             xcb_query_tree_reply_t* reply = xcb_query_tree_reply(WM.Connection, cookie, nullptr);
             xcb_window_t parent = reply->parent;
+
+            cookie = xcb_query_tree(WM.Connection, parent);
+            reply = xcb_query_tree_reply(WM.Connection, cookie, nullptr);
+            parent = reply->parent;
+            
             free(reply);
             std::cout << "Parent: " << parent << std::endl;
             PrintVisibleWindows();
