@@ -678,18 +678,6 @@ void handle_fullscreen_request(xcb_client_message_event_t* event) {
             uint32_t values[] = { XCB_STACK_MODE_ABOVE };
             xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
             xcb_flush(WM.Connection); */
-
-            xcb_query_tree_cookie_t cookie = xcb_query_tree(WM.Connection, event->window);
-            xcb_query_tree_reply_t* reply = xcb_query_tree_reply(WM.Connection, cookie, nullptr);
-            xcb_window_t parent = reply->parent;
-
-            cookie = xcb_query_tree(WM.Connection, parent);
-            reply = xcb_query_tree_reply(WM.Connection, cookie, nullptr);
-            parent = reply->parent;
-            
-            free(reply);
-            std::cout << "Parent: " << parent << std::endl;
-            PrintVisibleWindows();
             return;
         }
     }
@@ -845,6 +833,7 @@ int main() {
     Runtime.StartupCommands.insert("flameshot");
     Runtime.StartupCommands.insert("picom");
     Runtime.StartupCommands.insert("/home/pika/Config/scripts/wallpaper/change-wallpaper.sh");
+    Runtime.StartupCommands.insert("xset -dpms && xset s off");
 
     /* STARTUP COMMANDS */
     for (auto Command: Runtime.StartupCommands) {
