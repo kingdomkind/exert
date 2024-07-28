@@ -11,7 +11,6 @@
 #include <stack>
 #include <algorithm>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -23,16 +22,26 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/randr.h>
 
+/* The letter is the key, keybind struct is intended to be used in a multimap */
 struct Keybind {
     xcb_mod_mask_t Modifier;
     std::string Command;
 };
 
+/* The split direction of a container */
 enum Split {
     VERTICAL, // 0
     HORIZONTAL, // 1
     NONE, // 2
 };
+
+/* Struct that allows us to easily specify an X and Y co-ord */
+struct Coordinate {
+    float X;
+    float Y;
+};
+
+/* Enums that specify the segment of a window */
 enum WindowSegment {
     LEFT, // Remaining 2/4 middle left
     RIGHT, // Remaining 2/4 middle right
@@ -40,23 +49,21 @@ enum WindowSegment {
     DOWN, // Bottom 1/4 of the window
 };
 
-struct Coordinate {
-    float X;
-    float Y;
+/* This is used as a return type, so we can return related information about windows */
+struct WindowMetadata {
+    std::shared_ptr<struct Container> Container;
+    int Workspace = -1;
 };
 
+/* The struct associated with each window we manage */
 struct Window {
     xcb_window_t Window;
 };
 
-struct Protocols {
-    xcb_atom_t Protocols;
-    xcb_atom_t DeleteWindow;
-    xcb_atom_t NetWmState;
-    xcb_atom_t NetWmStateFullscreen;
-};
-
-struct Container { // If Direction is None it will have a Value (and no left / right pointer), otherwise it will have no value (and have left / right pointers)
+/* Each window struct has an associated Container. This is because we have a tree structure of containers, that define how windows should be split and positioned
+A container can either define a split, or can be a "holding" struct for a window - they cannot do both.
+If Direction is None it will have a Value / associated window (and no left / right pointer), otherwise it will have no value (and have left / right pointers) */
+struct Container {
     Split Direction;
     
     std::shared_ptr<Container> Parent = nullptr;
@@ -66,55 +73,66 @@ struct Container { // If Direction is None it will have a Value (and no left / r
     std::shared_ptr<Window> Value = nullptr;
 };
 
+/* The struct that defines each workspace. Each workspace has a root container, which represents the root node of the heirarchy tree */
 struct Workspace {
     std::shared_ptr<Container> RootContainer = nullptr;
 };
 
+/* The struct containing information about monitors */
 struct Monitor {
-    xcb_randr_output_t Output;
-    std::string Name;
+    xcb_randr_output_t Output; // Each monitor has a unique output identifier, essentially an id
+    std::string Name; // Usually the name of the port the monitor is connected to (eg. DP-2)
     int X;
     int Y;
     int Width;
     int Height;
-
-    int ActiveWorkspace = -1;
+    int ActiveWorkspace = -1; // Workspace being displayed on the monitor
 };
 
-struct WindowMetadata {
-    std::shared_ptr<struct Container> Container;
-    int Workspace = -1;
+/* Protocols that we support / need */
+struct Protocols {
+    xcb_atom_t Protocols;
+    xcb_atom_t DeleteWindow;
+    xcb_atom_t NetWmState;
+    xcb_atom_t NetWmStateFullscreen;
 };
 
+/* The main Window manager structure for information */
 struct WM {
-    xcb_connection_t* Connection;
-    xcb_screen_t* Screen;
-    xcb_key_symbols_t* Keysyms;
-    std::shared_ptr<Container> FocusedContainer;
-    std::vector<std::shared_ptr<Monitor>> Monitors;
-    std::vector<std::shared_ptr<Workspace>> Workspaces;
+    xcb_connection_t* Connection; // Reference to the x11 server connection
+    xcb_screen_t* Screen; // The root display
+    xcb_key_symbols_t* Keysyms; // Gets the key symbols for the connected keyboard
+    std::shared_ptr<Container> FocusedContainer; // The container of the current window that is being hovered over
+    std::vector<std::shared_ptr<Monitor>> Monitors; // All the monitors
+    std::vector<std::shared_ptr<Workspace>> Workspaces; // All the workspace structs. The index refers to which workspace it is (eg. index 0 is workspace 0);
 
-    Protocols ProtocolsContainer;
+    Protocols ProtocolsContainer; // The previously mentioned protocols
 };
 
+/* Stuff we configure */
 struct Runtime {
-    // Key is the letter / number / whatever associated with the keybind
-    std::multimap<unsigned int, struct Keybind> Keybinds;
+    std::multimap<unsigned int, struct Keybind> Keybinds; // Key is the letter / number / whatever associated with the keybind
     std::multimap<std::string, std::string> Exports; // Environment Variables
     std::unordered_set<std::string> StartupCommands; // Commands to run at boot
 };
 
-const uint32_t BORDER_WIDTH = 0;
-const uint32_t INACTIVE_BORDER_COLOUR = 0xff0000;
-const uint32_t ACTIVE_BORDER_COLOUR = 0x0000ff;
-const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000};
+const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000}; // The position of windows (x,y) which are offscreen (ie. their workspace is not active)
 
-static std::thread ListeningThread;
 static Runtime Runtime;
 static WM WM;
 
+// ! UTILITY FUNCTIONS
+xcb_atom_t GetAtom(std::string AtomName) {
+    xcb_intern_atom_reply_t* Atom = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen(AtomName.c_str()), AtomName.c_str()), nullptr);
+    if (!Atom) {
+        std::cerr << "Failed to get Atom: " << AtomName << " [EXIT]" << std::endl;
+    }
+    xcb_atom_t ReturnAtom = Atom->atom;
+    free(Atom); 
+    return ReturnAtom;
+}
+
 bool DoesWindowSupportProtocol(xcb_window_t Window, xcb_atom_t Atom) {
-  // Get the supported protocols
     xcb_icccm_get_wm_protocols_reply_t Protocols;
     xcb_get_property_cookie_t Cookie = xcb_icccm_get_wm_protocols(WM.Connection, Window, WM.ProtocolsContainer.Protocols);
     if (xcb_icccm_get_wm_protocols_reply(WM.Connection, Cookie, &Protocols, NULL) != 1) {
@@ -211,50 +229,6 @@ std::shared_ptr<WindowMetadata> GetWorkspaceAndContainerFromWindow(xcb_window_t 
     return nullptr;
 }
 
-void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
-    xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
-
-    if (Event->event != 0) {
-        if (WM.FocusedContainer != nullptr) {
-            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
-        }
-        std::cout << "Setting window focus to: " << Event->event << std::endl;
-        xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
-        WM.FocusedContainer = GetWorkspaceAndContainerFromWindow(Event->event)->Container;
-        xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &ACTIVE_BORDER_COLOUR);
-        xcb_flush(WM.Connection);
-    } else {
-        std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
-    }
-    std::cout << "Finished setting focus" << std::endl;
-}
-
-void KillWindow(xcb_window_t Window) {
-    if (DoesWindowSupportProtocol(Window, WM.ProtocolsContainer.DeleteWindow)) {
-        std::cout << "Soft killing window: " << Window << std::endl;
-        xcb_client_message_event_t Event;
-        std::memset(&Event, 0, sizeof(Event));
-        Event.response_type = XCB_CLIENT_MESSAGE;
-        Event.window = Window;
-        Event.type = WM.ProtocolsContainer.Protocols;
-        Event.format = 32;
-        Event.data.data32[0] = WM.ProtocolsContainer.DeleteWindow;
-        Event.data.data32[1] = XCB_CURRENT_TIME;
-
-        xcb_send_event(WM.Connection, false, Window, XCB_EVENT_MASK_NO_EVENT, (const char*)&Event);
-        xcb_flush(WM.Connection);
-    } else {
-        std::cout << "Hard killing window: " << Window << std::endl;
-        xcb_kill_client(WM.Connection, Window);
-        xcb_flush(WM.Connection);
-    }
-}
-
-void ExitWM() {
-    free(WM.Keysyms);
-    xcb_disconnect(WM.Connection);
-}
-
 unsigned int KeysymToKeycode(const unsigned int Keysym) {
     xcb_keycode_t* Keycodes = xcb_key_symbols_get_keycode(WM.Keysyms, Keysym);
     if (!Keycodes) {
@@ -274,18 +248,6 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
         exit(EXIT_FAILURE);
     }
     return KeySym;
-}
-
-void StartupWM() {
-    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "Changed checked window attributes" << std::endl;
-    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
-
-    for (const auto &Pair : Runtime.Keybinds) {
-        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-    }
-
-    xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
 std::shared_ptr<Monitor> GetMonitorFromWorkspace(int Workspace) {
@@ -339,12 +301,11 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
     }
 
-    uint32_t Parameters[] = {X, Y, Width, Height, BORDER_WIDTH};
-    xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH, Parameters);
+    uint32_t Parameters[] = {X, Y, Width, Height};
+    xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
     xcb_flush(WM.Connection);
     std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
 }
-
 
 Coordinate GetCursorPosition() {
     xcb_query_pointer_reply_t* Position = xcb_query_pointer_reply(WM.Connection, xcb_query_pointer(WM.Connection, WM.Screen->root), nullptr);
@@ -359,7 +320,6 @@ Coordinate GetCursorPosition() {
         exit(EXIT_FAILURE);
     }
 }
-
 
 std::shared_ptr<Monitor> GetActiveMonitor() {
     Coordinate CursorPosition = GetCursorPosition();
@@ -411,77 +371,6 @@ unsigned int GetActiveWorkspaceChecked(std::shared_ptr<Monitor> MonitorToCheck) 
         std::cerr << "Active workspace of Monitor: " << MonitorToCheck->Name << " is -1, which is invalid! [EXIT]" << std::endl;
         exit(EXIT_FAILURE);
     }
-}
-
-void OnMapRequest(const xcb_generic_event_t* NextEvent) {
-    std::cout << "Map request recieved" << std::endl;
-    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-
-    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
-    NewWindow->Window = Event->window;
-
-    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
-    NewContainer->Direction = NONE;
-    NewContainer->Parent = nullptr;
-    NewContainer->Value = NewWindow;
-
-    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceChecked(GetActiveMonitor())];
-
-    if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
-        if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
-            xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
-
-            if (FocusedWindowGeometry) {
-                WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
-
-                std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
-                NewFocusedContainer->Direction = NONE;
-                NewFocusedContainer->Value = WM.FocusedContainer->Value;
-                NewFocusedContainer->Parent = WM.FocusedContainer;
-                NewContainer->Parent = WM.FocusedContainer;
-
-                WM.FocusedContainer->Value = nullptr;
-
-                if (Section == UP || Section == DOWN) {
-                    WM.FocusedContainer->Direction = HORIZONTAL;
-                } else {
-                    WM.FocusedContainer->Direction = VERTICAL;
-                }
-
-                if (Section == RIGHT || Section == DOWN) {
-                    WM.FocusedContainer->Right = NewContainer;
-                    WM.FocusedContainer->Left = NewFocusedContainer;
-                } else {
-                    WM.FocusedContainer->Left = NewContainer;
-                    WM.FocusedContainer->Right = NewFocusedContainer;
-                }
-
-                WM.FocusedContainer = NewFocusedContainer;
-                UpdateWindowToCurrentSplits(WM.FocusedContainer);
-
-            } else {
-                std::cerr << "Focused window is " << WM.FocusedContainer->Value->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
-            exit(EXIT_FAILURE);
-        }
-    } else { // First window opened
-        std::cout << "No root, making new root" << std::endl;
-        ActiveWorkspace->RootContainer = NewContainer;
-    }
-
-    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_BORDER_PIXEL, &INACTIVE_BORDER_COLOUR);
-    UpdateWindowToCurrentSplits(NewContainer);
-
-    std::cout << "ADDED! " << Event->window << std::endl;
-    PrintVisibleWindows();
-
-    xcb_map_window(WM.Connection, Event->window);
-    xcb_flush(WM.Connection);
 }
 
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
@@ -552,22 +441,6 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
     }
 }
 
-void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
-    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
-    if (Result != nullptr) {
-        RemoveContainerFromWM(Result->Container, Result->Workspace);
-    } // We don't error, as it can fail as unmap can be called on clients we haven't set up
-}
-
-void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
-    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
-    if (Result != nullptr) {
-        RemoveContainerFromWM(Result->Container, Result->Workspace);
-    }
-}
-
 void EnsureValidWorkspacesBetweenIndicesInclusive(int LowerBound, int UpperBound) {
     for (int i = LowerBound; i <= UpperBound; i++) {
         if (static_cast<int>(WM.Workspaces.size()-1) < i) { // Current Index doesn't exist -- create a new one
@@ -633,12 +506,181 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
     std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
 }
 
-std::unordered_map<std::string, std::function<void(const std::string &Arguments)>> InternalCommand = {
+void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
+    std::vector<int> ClaimedWorkspaces;
+    for (auto &MonitorLoop: WM.Monitors) {
+        if (MonitorLoop->ActiveWorkspace != -1) {
+            ClaimedWorkspaces.push_back(MonitorLoop->ActiveWorkspace);
+	    std::cout << "Added " << MonitorLoop->ActiveWorkspace << " to claimed workspaces!" << std::endl;
+        }
+    }
+
+    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
+        auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
+        if (Found == ClaimedWorkspaces.end()) { // Allocates any spare workspaces
+            Monitor->ActiveWorkspace = i;
+            std::cout << "Assigned Monitor: " << Monitor->Name << ", Pre-existing Workspace: " << i << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
+            return;
+        }
+    }
+
+    // No spare workspaces, create new one and allocate that
+    std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
+    WM.Workspaces.push_back(NewWorkspace);
+    Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
+
+    std::cout << "Assigned Monitor: " << Monitor->Name << ", NEW Workspace: " << WM.Workspaces.size() - 1
+    << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
+}
+
+// ! COMMANDS
+void KillWindow(xcb_window_t Window) {
+    if (DoesWindowSupportProtocol(Window, WM.ProtocolsContainer.DeleteWindow)) {
+        std::cout << "Soft killing window: " << Window << std::endl;
+        xcb_client_message_event_t Event;
+        std::memset(&Event, 0, sizeof(Event));
+        Event.response_type = XCB_CLIENT_MESSAGE;
+        Event.window = Window;
+        Event.type = WM.ProtocolsContainer.Protocols;
+        Event.format = 32;
+        Event.data.data32[0] = WM.ProtocolsContainer.DeleteWindow;
+        Event.data.data32[1] = XCB_CURRENT_TIME;
+
+        xcb_send_event(WM.Connection, false, Window, XCB_EVENT_MASK_NO_EVENT, (const char*)&Event);
+        xcb_flush(WM.Connection);
+    } else {
+        std::cout << "Hard killing window: " << Window << std::endl;
+        xcb_kill_client(WM.Connection, Window);
+        xcb_flush(WM.Connection);
+    }
+}
+
+
+void ExitWM() {
+    free(WM.Keysyms);
+    xcb_disconnect(WM.Connection);
+}
+
+
+// ! EVENT LOOP FUNCTIONS
+void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
+
+    if (Event->event != 0) {
+        std::cout << "Setting window focus to: " << Event->event << std::endl;
+        xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
+        WM.FocusedContainer = GetWorkspaceAndContainerFromWindow(Event->event)->Container;
+        xcb_flush(WM.Connection);
+    } else {
+        std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
+    }
+    std::cout << "Finished setting focus" << std::endl;
+}
+
+void OnMapRequest(const xcb_generic_event_t* NextEvent) {
+    std::cout << "Map request recieved" << std::endl;
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+
+    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
+    NewWindow->Window = Event->window;
+
+    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
+    NewContainer->Direction = NONE;
+    NewContainer->Parent = nullptr;
+    NewContainer->Value = NewWindow;
+
+    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceChecked(GetActiveMonitor())];
+
+    if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
+        if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
+            xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
+
+            if (FocusedWindowGeometry) {
+                WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
+
+                std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
+                NewFocusedContainer->Direction = NONE;
+                NewFocusedContainer->Value = WM.FocusedContainer->Value;
+                NewFocusedContainer->Parent = WM.FocusedContainer;
+                NewContainer->Parent = WM.FocusedContainer;
+
+                WM.FocusedContainer->Value = nullptr;
+
+                if (Section == UP || Section == DOWN) {
+                    WM.FocusedContainer->Direction = HORIZONTAL;
+                } else {
+                    WM.FocusedContainer->Direction = VERTICAL;
+                }
+
+                if (Section == RIGHT || Section == DOWN) {
+                    WM.FocusedContainer->Right = NewContainer;
+                    WM.FocusedContainer->Left = NewFocusedContainer;
+                } else {
+                    WM.FocusedContainer->Left = NewContainer;
+                    WM.FocusedContainer->Right = NewFocusedContainer;
+                }
+
+                WM.FocusedContainer = NewFocusedContainer;
+                UpdateWindowToCurrentSplits(WM.FocusedContainer);
+
+            } else {
+                std::cerr << "Focused window is " << WM.FocusedContainer->Value->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    } else { // First window opened
+        std::cout << "No root, making new root" << std::endl;
+        ActiveWorkspace->RootContainer = NewContainer;
+    }
+
+    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
+    UpdateWindowToCurrentSplits(NewContainer);
+
+    std::cout << "ADDED! " << Event->window << std::endl;
+    PrintVisibleWindows();
+
+    xcb_map_window(WM.Connection, Event->window);
+    xcb_flush(WM.Connection);
+}
+
+void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
+    if (Result != nullptr) {
+        RemoveContainerFromWM(Result->Container, Result->Workspace);
+    } // We don't error, as it can fail as unmap can be called on clients we haven't set up
+}
+
+void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
+    if (Result != nullptr) {
+        RemoveContainerFromWM(Result->Container, Result->Workspace);
+    }
+}
+
+void HandleFullScreenRequest(xcb_generic_event_t* NextEvent) {
+    xcb_client_message_event_t* event = (xcb_client_message_event_t*)NextEvent;
+    if (event->type == WM.ProtocolsContainer.NetWmState) {
+        if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
+            std::cout << "fullscreen request for window " << event->window << std::endl; /*
+            uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+            xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
+            xcb_flush(WM.Connection); */
+            return;
+        }
+    }
+}
+
+std::unordered_map<std::string, std::function<void(const std::string &Arguments)>> InternalCommand = { // Only used in on keypress hence why it is here
     {"KillActive", [](const std::string &Arguments) { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
 };
-
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
@@ -671,16 +713,17 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
-void handle_fullscreen_request(xcb_client_message_event_t* event) {
-    if (event->type == WM.ProtocolsContainer.NetWmState) {
-        if (event->data.data32[1] == WM.ProtocolsContainer.NetWmStateFullscreen || event->data.data32[2] == WM.ProtocolsContainer.NetWmStateFullscreen) {
-            std::cout << "fullscreen request for window " << event->window << std::endl; /*
-            uint32_t values[] = { XCB_STACK_MODE_ABOVE };
-            xcb_configure_window(WM.Connection, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
-            xcb_flush(WM.Connection); */
-            return;
-        }
+/* MAIN CALL FUNCTIONS */
+void StartupWM() {
+    const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
+    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "Changed checked window attributes" << std::endl;
+    xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
+
+    for (const auto &Pair : Runtime.Keybinds) {
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
+
+    xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
 void RunEventLoop() {
@@ -695,37 +738,10 @@ void RunEventLoop() {
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
-            case XCB_CLIENT_MESSAGE: { handle_fullscreen_request((xcb_client_message_event_t*)NextEvent); break; }
+            case XCB_CLIENT_MESSAGE: { HandleFullScreenRequest(NextEvent); break; }
             default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
         }
     }
-}
-
-void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
-    std::vector<int> ClaimedWorkspaces;
-    for (auto &MonitorLoop: WM.Monitors) {
-        if (MonitorLoop->ActiveWorkspace != -1) {
-            ClaimedWorkspaces.push_back(MonitorLoop->ActiveWorkspace);
-	    std::cout << "Added " << MonitorLoop->ActiveWorkspace << " to claimed workspaces!" << std::endl;
-        }
-    }
-
-    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
-        auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
-        if (Found == ClaimedWorkspaces.end()) { // Allocates any spare workspaces
-            Monitor->ActiveWorkspace = i;
-            std::cout << "Assigned Monitor: " << Monitor->Name << ", Pre-existing Workspace: " << i << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
-            return;
-        }
-    }
-
-    // No spare workspaces, create new one and allocate that
-    std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
-    WM.Workspaces.push_back(NewWorkspace);
-    Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
-
-    std::cout << "Assigned Monitor: " << Monitor->Name << ", NEW Workspace: " << WM.Workspaces.size() - 1
-    << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
 }
 
 void InitialiseMonitors() {
@@ -780,16 +796,6 @@ void InitialiseMonitors() {
     }
 
     free(ResourcesReply);
-}
-
-xcb_atom_t GetAtom(std::string AtomName) {
-    xcb_intern_atom_reply_t* Atom = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen(AtomName.c_str()), AtomName.c_str()), nullptr);
-    if (!Atom) {
-        std::cerr << "Failed to get Atom: " << AtomName << " [EXIT]" << std::endl;
-    }
-    xcb_atom_t ReturnAtom = Atom->atom;
-    free(Atom); 
-    return ReturnAtom;
 }
 
 int main() {
@@ -848,7 +854,6 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "brave"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_f), {XCB_MOD_MASK_4, "armcord"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
@@ -858,7 +863,6 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_r), {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}});
-
     // Workspaces
     Runtime.Keybinds.insert({KeysymToKeycode(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_2), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}});
