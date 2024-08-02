@@ -560,7 +560,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
         if (WindowTypeReply->type == XCB_ATOM_ATOM && WindowTypeReply->format == 32 && WindowTypeReply->length > 0) {
             xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
 
-            for (int i = 0; i < WindowTypeReply->length; i++) {
+            for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
                 if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
                     std::cout << "Window to map is a popup, letting it map itself. Window: " << Event->window << std::endl;
                     xcb_map_window(WM.Connection, Event->window);
