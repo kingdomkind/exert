@@ -95,6 +95,10 @@ struct Protocols {
     xcb_atom_t DeleteWindow;
     xcb_atom_t NetWmState;
     xcb_atom_t NetWmStateFullscreen;
+    xcb_atom_t NetWmWindowTypeDialog;
+    xcb_atom_t NetWmWindowTypeUtility;
+    xcb_atom_t NetWmWindowTypeSplash;
+    xcb_atom_t NetWmWindowType;
 };
 
 /* The main Window manager structure for information */
@@ -176,12 +180,8 @@ void PrintVisibleWindows() {
                 std::cout << "Right Pointer: " << CurrentContainer->Left << std::endl; 
                 std::cout << "\n" << std::endl;
 
-                if (CurrentContainer->Right != nullptr) {
-                    Stack.push(CurrentContainer->Right);
-                }
-                if (CurrentContainer->Left != nullptr) {
-                    Stack.push(CurrentContainer->Left);
-                }
+                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
+                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
             }
         } else {
             std::cerr << "Could not print windows as there is no root container!" << std::endl;
@@ -190,7 +190,7 @@ void PrintVisibleWindows() {
     std::cout << std::endl;
 }
 
-std::shared_ptr<WindowMetadata> GetWorkspaceAndContainerFromWindow(xcb_window_t Window) {
+std::shared_ptr<WindowMetadata> GetWorkspaceAndContainerFromWindow_PossibleNullptr(xcb_window_t Window) {
     std::shared_ptr<WindowMetadata> Metadata = std::make_shared<WindowMetadata>();
     for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
         std::shared_ptr<Workspace> Workspace = WM.Workspaces[i];
@@ -250,7 +250,7 @@ unsigned int KeycodeToKeysym(const unsigned int Keycode) {
     return KeySym;
 }
 
-std::shared_ptr<Monitor> GetMonitorFromWorkspace(int Workspace) {
+std::shared_ptr<Monitor> GetMonitorFromWorkspace_PossibleNullptr(int Workspace) {
     for (auto Monitor: WM.Monitors) {
         if (Monitor->ActiveWorkspace == Workspace) {
             return Monitor;
@@ -262,7 +262,7 @@ std::shared_ptr<Monitor> GetMonitorFromWorkspace(int Workspace) {
 void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     std::cout << "Updating to current splits: " << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
-    std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace(GetWorkspaceAndContainerFromWindow(TargetContainer->Value->Window)->Workspace);
+    std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(TargetContainer->Value->Window)->Workspace);
 
     if (TargetContainer->Value == nullptr) {
         std::cerr << "Target container has no value -- cannot proceed in positioning and sizing it! [EXIT]" << std::endl;
@@ -287,16 +287,10 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
         if (TopContainer->Direction == VERTICAL) {
             Width = Width * 0.5;
-
-            if (TopContainer->Right == Stack.top()) {
-                X += Width;
-            }
+            if (TopContainer->Right == Stack.top()) { X += Width; }
         } else {
             Height = Height * 0.5;
-
-            if (TopContainer->Right == Stack.top()) {
-                Y += Height;
-            } 
+            if (TopContainer->Right == Stack.top()) { Y += Height; } 
         }
         std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
     }
@@ -349,20 +343,11 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     std::cout << "Offset Y: " << AccountOffset.Y << ", Length: " << WindowGeometry->height << std::endl;
     std::cout << "RatioX Segment Cursor: " << RatioX << ", RatioY Segment Cursor: " << RatioY << std::endl; 
 
-    if (RatioY < 0.25) {
-        return UP;
-    } else if (RatioY > 0.75) {
-        return DOWN;
-    }
-
-    if (RatioX < 0.5) {
-        return LEFT;
-    } else {
-        return RIGHT;
-    }
+    if (RatioY < 0.25) { return UP; } else if (RatioY > 0.75) { return DOWN; }
+    if (RatioX < 0.5) { return LEFT; } else { return RIGHT; }
 }
 
-unsigned int GetActiveWorkspaceChecked(std::shared_ptr<Monitor> MonitorToCheck) {
+unsigned int GetActiveWorkspaceEnsureValid(std::shared_ptr<Monitor> MonitorToCheck) {
     int ActiveWorkspace = MonitorToCheck->ActiveWorkspace;
     if (ActiveWorkspace != -1) {
         std::cout << "Active workspace of Monitor: " << MonitorToCheck->Name << " is " << ActiveWorkspace << std::endl;
@@ -400,7 +385,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
         std::cout << "After reconfigurement" << std::endl;
         PrintVisibleWindows();
 
-	// Update the splits for all affected windows
+	    // Update the splits for all affected windows
         std::stack<std::shared_ptr<Container>> Stack;
         Stack.push(PromotionContainer);
         while (!Stack.empty()) {
@@ -415,18 +400,8 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
             if (CurrentContainer->Direction == NONE) {
                 UpdateWindowToCurrentSplits(CurrentContainer);
             } else {
-                if (CurrentContainer->Right != nullptr) {
-                    Stack.push(CurrentContainer->Right);
-                } else {
-                    std::cerr << "The split direction is not None, but yet there is no right pointer! [EXIT]" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
-                if (CurrentContainer->Left != nullptr) {
-                    Stack.push(CurrentContainer->Left);
-                } else {
-                    std::cerr << "The split direction is not None, but yet there is no left pointer! [EXIT]" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
+                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
+                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
             }
         }
 
@@ -451,9 +426,63 @@ void EnsureValidWorkspacesBetweenIndicesInclusive(int LowerBound, int UpperBound
     }
 }
 
+void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
+    std::vector<int> ClaimedWorkspaces;
+    for (auto &MonitorLoop: WM.Monitors) {
+        if (MonitorLoop->ActiveWorkspace != -1) {
+            ClaimedWorkspaces.push_back(MonitorLoop->ActiveWorkspace);
+	    std::cout << "Added " << MonitorLoop->ActiveWorkspace << " to claimed workspaces!" << std::endl;
+        }
+    }
+
+    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
+        auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
+        if (Found == ClaimedWorkspaces.end()) { // Allocates any spare workspaces
+            Monitor->ActiveWorkspace = i;
+            std::cout << "Assigned Monitor: " << Monitor->Name << ", Pre-existing Workspace: " << i << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
+            return;
+        }
+    }
+
+    // No spare workspaces, create new one and allocate that
+    std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
+    WM.Workspaces.push_back(NewWorkspace);
+    Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
+
+    std::cout << "Assigned Monitor: " << Monitor->Name << ", NEW Workspace: " << WM.Workspaces.size() - 1
+    << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
+}
+
+// ! COMMANDS
+void KillWindow(xcb_window_t Window) {
+    if (DoesWindowSupportProtocol(Window, WM.ProtocolsContainer.DeleteWindow)) {
+        std::cout << "Soft killing window: " << Window << std::endl;
+        xcb_client_message_event_t Event;
+        std::memset(&Event, 0, sizeof(Event));
+        Event.response_type = XCB_CLIENT_MESSAGE;
+        Event.window = Window;
+        Event.type = WM.ProtocolsContainer.Protocols;
+        Event.format = 32;
+        Event.data.data32[0] = WM.ProtocolsContainer.DeleteWindow;
+        Event.data.data32[1] = XCB_CURRENT_TIME;
+
+        xcb_send_event(WM.Connection, false, Window, XCB_EVENT_MASK_NO_EVENT, (const char*)&Event);
+        xcb_flush(WM.Connection);
+    } else {
+        std::cout << "Hard killing window: " << Window << std::endl;
+        xcb_kill_client(WM.Connection, Window);
+        xcb_flush(WM.Connection);
+    }
+}
+
+void ExitWM() {
+    free(WM.Keysyms);
+    xcb_disconnect(WM.Connection);
+}
+
 void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor> TargetMonitor) {
-    unsigned int PreviousWorkspace = GetActiveWorkspaceChecked(TargetMonitor);
-    std::shared_ptr<Monitor> PreviousMonitor = GetMonitorFromWorkspace(TargetWorkspace);
+    unsigned int PreviousWorkspace = GetActiveWorkspaceEnsureValid(TargetMonitor);
+    std::shared_ptr<Monitor> PreviousMonitor = GetMonitorFromWorkspace_PossibleNullptr(TargetWorkspace);
 
     if (PreviousMonitor != nullptr) {
         TargetMonitor->ActiveWorkspace = -1;
@@ -506,62 +535,6 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
     std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
 }
 
-void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
-    std::vector<int> ClaimedWorkspaces;
-    for (auto &MonitorLoop: WM.Monitors) {
-        if (MonitorLoop->ActiveWorkspace != -1) {
-            ClaimedWorkspaces.push_back(MonitorLoop->ActiveWorkspace);
-	    std::cout << "Added " << MonitorLoop->ActiveWorkspace << " to claimed workspaces!" << std::endl;
-        }
-    }
-
-    for (int i = 0; i < static_cast<int>(WM.Workspaces.size()); i++) {
-        auto Found = std::find(ClaimedWorkspaces.begin(), ClaimedWorkspaces.end(), i);
-        if (Found == ClaimedWorkspaces.end()) { // Allocates any spare workspaces
-            Monitor->ActiveWorkspace = i;
-            std::cout << "Assigned Monitor: " << Monitor->Name << ", Pre-existing Workspace: " << i << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
-            return;
-        }
-    }
-
-    // No spare workspaces, create new one and allocate that
-    std::shared_ptr<Workspace> NewWorkspace = std::make_shared<Workspace>();
-    WM.Workspaces.push_back(NewWorkspace);
-    Monitor->ActiveWorkspace = WM.Workspaces.size() - 1;
-
-    std::cout << "Assigned Monitor: " << Monitor->Name << ", NEW Workspace: " << WM.Workspaces.size() - 1
-    << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
-}
-
-// ! COMMANDS
-void KillWindow(xcb_window_t Window) {
-    if (DoesWindowSupportProtocol(Window, WM.ProtocolsContainer.DeleteWindow)) {
-        std::cout << "Soft killing window: " << Window << std::endl;
-        xcb_client_message_event_t Event;
-        std::memset(&Event, 0, sizeof(Event));
-        Event.response_type = XCB_CLIENT_MESSAGE;
-        Event.window = Window;
-        Event.type = WM.ProtocolsContainer.Protocols;
-        Event.format = 32;
-        Event.data.data32[0] = WM.ProtocolsContainer.DeleteWindow;
-        Event.data.data32[1] = XCB_CURRENT_TIME;
-
-        xcb_send_event(WM.Connection, false, Window, XCB_EVENT_MASK_NO_EVENT, (const char*)&Event);
-        xcb_flush(WM.Connection);
-    } else {
-        std::cout << "Hard killing window: " << Window << std::endl;
-        xcb_kill_client(WM.Connection, Window);
-        xcb_flush(WM.Connection);
-    }
-}
-
-
-void ExitWM() {
-    free(WM.Keysyms);
-    xcb_disconnect(WM.Connection);
-}
-
-
 // ! EVENT LOOP FUNCTIONS
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
@@ -569,7 +542,7 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     if (Event->event != 0) {
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
-        WM.FocusedContainer = GetWorkspaceAndContainerFromWindow(Event->event)->Container;
+        WM.FocusedContainer = GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->event)->Container;
         xcb_flush(WM.Connection);
     } else {
         std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
@@ -581,15 +554,31 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::cout << "Map request recieved" << std::endl;
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
 
+    // Check if window is a popup or similar
+    xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, Event->window, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
+    if (WindowTypeReply) {
+        if (WindowTypeReply->type == XCB_ATOM_ATOM && WindowTypeReply->format == 32 && WindowTypeReply->length > 0) {
+            xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
+
+            for (int i = 0; i < WindowTypeReply->length; i++) {
+                if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
+                    std::cout << "Window to map is a popup, letting it map itself. Window: " << Event->window << std::endl;
+                    xcb_map_window(WM.Connection, Event->window);
+                    xcb_flush(WM.Connection);
+                    return;
+                }
+            }
+        }
+    }
+
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
     NewWindow->Window = Event->window;
-
     std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
     NewContainer->Direction = NONE;
     NewContainer->Parent = nullptr;
     NewContainer->Value = NewWindow;
 
-    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceChecked(GetActiveMonitor())];
+    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
 
     if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
@@ -649,7 +638,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
+    auto Result = GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->window);
     if (Result != nullptr) {
         RemoveContainerFromWM(Result->Container, Result->Workspace);
     } // We don't error, as it can fail as unmap can be called on clients we haven't set up
@@ -657,7 +646,7 @@ void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
 
 void OnDestroyNotify(const xcb_generic_event_t* NextEvent) {
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-    auto Result = GetWorkspaceAndContainerFromWindow(Event->window);
+    auto Result = GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->window);
     if (Result != nullptr) {
         RemoveContainerFromWM(Result->Container, Result->Workspace);
     }
@@ -713,7 +702,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     }
 }
 
-/* MAIN CALL FUNCTIONS */
+/* MAIN FUNCTION CALLS */
 void StartupWM() {
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "Changed checked window attributes" << std::endl;
@@ -799,7 +788,7 @@ void InitialiseMonitors() {
 }
 
 int main() {
-    /* EXPORTS */
+    // * EXPORTS
     Runtime.Exports.insert({"XCURSOR_SIZE", "24"});
     Runtime.Exports.insert({"GTK_THEME", "Adwaita:dark"});
 
@@ -830,18 +819,18 @@ int main() {
     }
     std::cout << "Initialised the key symbols" << std::endl;
 
-    // Setup Monitor resolution, positions and refresh rates
+    // * MONITOR SETTINGS
     system("xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --left-of DP-2");
     system("xrandr --output DP-2 --mode 3840x2160 --rate 119.91");
     InitialiseMonitors();
 
+    // * STARTUP COMMANDS
     Runtime.StartupCommands.insert("dunst");
     Runtime.StartupCommands.insert("flameshot");
     Runtime.StartupCommands.insert("picom");
     Runtime.StartupCommands.insert("/home/pika/Config/scripts/wallpaper/change-wallpaper.sh");
     Runtime.StartupCommands.insert("xset -dpms && xset s off");
 
-    /* STARTUP COMMANDS */
     for (auto Command: Runtime.StartupCommands) {
         if (fork() == 0) {
             std::cout << "Executing: " << Command << std::endl;
@@ -849,7 +838,7 @@ int main() {
         }
     }
 
-    /* KEYBINDS */
+    // * KEYBINDS
     Runtime.Keybinds.insert({KeysymToKeycode(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
@@ -879,9 +868,12 @@ int main() {
     WM.ProtocolsContainer.DeleteWindow = GetAtom("WM_DELETE_WINDOW");
     WM.ProtocolsContainer.NetWmState = GetAtom("_NET_WM_STATE");
     WM.ProtocolsContainer.NetWmStateFullscreen = GetAtom("_NET_WM_STATE_FULLSCREEN");
+    WM.ProtocolsContainer.NetWmWindowTypeDialog = GetAtom("_NET_WM_WINDOW_TYPE_DIALOG");
+    WM.ProtocolsContainer.NetWmWindowTypeUtility = GetAtom("_NET_WM_WINDOW_TYPE_UTILITY");
+    WM.ProtocolsContainer.NetWmWindowTypeSplash = GetAtom("_NET_WM_WINDOW_TYPE_SPLASH");
+    WM.ProtocolsContainer.NetWmWindowType = GetAtom("_NET_WM_WINDOW_TYPE");
 
     StartupWM();
     RunEventLoop();
-    
     return EXIT_SUCCESS;
 }
