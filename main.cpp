@@ -554,15 +554,17 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::cout << "Map request recieved" << std::endl;
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
 
-    // Check if window is a popup or similar
+    // Check if window is a popup or similar, if so map it to the center of the current monitor
     xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, Event->window, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
     if (WindowTypeReply) {
         if (WindowTypeReply->type == XCB_ATOM_ATOM && WindowTypeReply->format == 32 && WindowTypeReply->length > 0) {
             xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
-
             for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
                 if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
-                    std::cout << "Window to map is a popup, letting it map itself. Window: " << Event->window << std::endl;
+                    std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << Event->window << std::endl;
+                    auto CurrentMonitor = GetActiveMonitor();
+                    uint32_t Parameters[] = {static_cast<uint32_t>(CurrentMonitor->X+CurrentMonitor->Width/4), static_cast<uint32_t>(CurrentMonitor->Y+CurrentMonitor->Height/4), static_cast<uint32_t>(CurrentMonitor->Width/2), static_cast<uint32_t>(CurrentMonitor->Height/2)};
+                    xcb_configure_window(WM.Connection, Event->window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
                     xcb_map_window(WM.Connection, Event->window);
                     xcb_flush(WM.Connection);
                     return;
