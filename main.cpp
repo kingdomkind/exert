@@ -695,6 +695,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"KillActive", [](const std::string &Arguments) { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
+    {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
