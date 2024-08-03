@@ -76,6 +76,7 @@ struct Container {
 /* The struct that defines each workspace. Each workspace has a root container, which represents the root node of the heirarchy tree */
 struct Workspace {
     std::shared_ptr<Container> RootContainer = nullptr;
+    std::shared_ptr<Container> FullscreenContainer = nullptr; // If there is a window that is fullscreened on the workspace
 };
 
 /* The struct containing information about monitors */
@@ -259,8 +260,18 @@ std::shared_ptr<Monitor> GetMonitorFromWorkspace_PossibleNullptr(int Workspace) 
     return nullptr;
 }
 
-void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
+unsigned int GetActiveWorkspaceEnsureValid(std::shared_ptr<Monitor> MonitorToCheck) {
+    int ActiveWorkspace = MonitorToCheck->ActiveWorkspace;
+    if (ActiveWorkspace != -1) {
+        std::cout << "Active workspace of Monitor: " << MonitorToCheck->Name << " is " << ActiveWorkspace << std::endl;
+        return ActiveWorkspace;
+    } else {
+        std::cerr << "Active workspace of Monitor: " << MonitorToCheck->Name << " is -1, which is invalid! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
 
+void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::cout << "Updating to current splits: " << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
     std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(TargetContainer->Value->Window)->Workspace);
 
@@ -269,30 +280,33 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
         exit(EXIT_FAILURE);
     }
 
-    std::stack<std::shared_ptr<Container>> Stack;
     uint32_t X, Y, Width, Height;
     X = Monitor->X; Y = Monitor->Y; Width = Monitor->Width; Height = Monitor->Height;
 
-    std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
-    while (true) {
-        Stack.push(*CurrentContainer);
-        std::cout << "Pushed " << CurrentContainer->get() << " onto the stack" << std::endl;
-        if (CurrentContainer->get()->Parent == nullptr) { break; }
-        CurrentContainer = &CurrentContainer->get()->Parent;
-    }
-
-    while (Stack.size() > 1) { // Don't iterate over the base container
-        std::shared_ptr<Container> TopContainer = Stack.top();
-        Stack.pop();
-
-        if (TopContainer->Direction == VERTICAL) {
-            Width = Width * 0.5;
-            if (TopContainer->Right == Stack.top()) { X += Width; }
-        } else {
-            Height = Height * 0.5;
-            if (TopContainer->Right == Stack.top()) { Y += Height; } 
+    // Ensure that the window isn't fullscreened
+    if (WM.Workspaces[GetActiveWorkspaceEnsureValid(Monitor)]->FullscreenContainer != TargetContainer) {
+        std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
+        std::stack<std::shared_ptr<Container>> Stack;
+        while (true) {
+            Stack.push(*CurrentContainer);
+            std::cout << "Pushed " << CurrentContainer->get() << " onto the stack" << std::endl;
+            if (CurrentContainer->get()->Parent == nullptr) { break; }
+            CurrentContainer = &CurrentContainer->get()->Parent;
         }
-        std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
+
+        while (Stack.size() > 1) { // Don't iterate over the base container
+            std::shared_ptr<Container> TopContainer = Stack.top();
+            Stack.pop();
+
+            if (TopContainer->Direction == VERTICAL) {
+                Width = Width * 0.5;
+                if (TopContainer->Right == Stack.top()) { X += Width; }
+            } else {
+                Height = Height * 0.5;
+                if (TopContainer->Right == Stack.top()) { Y += Height; } 
+            }
+            std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
+        }
     }
 
     uint32_t Parameters[] = {X, Y, Width, Height};
@@ -347,19 +361,7 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     if (RatioX < 0.5) { return LEFT; } else { return RIGHT; }
 }
 
-unsigned int GetActiveWorkspaceEnsureValid(std::shared_ptr<Monitor> MonitorToCheck) {
-    int ActiveWorkspace = MonitorToCheck->ActiveWorkspace;
-    if (ActiveWorkspace != -1) {
-        std::cout << "Active workspace of Monitor: " << MonitorToCheck->Name << " is " << ActiveWorkspace << std::endl;
-        return ActiveWorkspace;
-    } else {
-        std::cerr << "Active workspace of Monitor: " << MonitorToCheck->Name << " is -1, which is invalid! [EXIT]" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-}
-
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
-
     std::cout << "Removing container from WM" << std::endl;
     if (!(ToBeRemoved->Parent == nullptr)) {
         std::shared_ptr<Container> PromotionContainer; // We choose the other window to be promoted
@@ -413,6 +415,11 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
     if (WM.FocusedContainer == ToBeRemoved) {
         WM.FocusedContainer = nullptr;
         std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
+    }
+
+    if (WM.Workspaces[Workspace]->FullscreenContainer == ToBeRemoved) {
+        WM.Workspaces[Workspace]->FullscreenContainer = nullptr;
+        std::cout << "Fullscreened Container was deleted, setting to nullptr" << std::endl;    
     }
 }
 
@@ -533,6 +540,23 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
         }
     }
     std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
+}
+
+void ToggleFullscreen() {
+    if (WM.FocusedContainer) {
+        int WorkspaceInt = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
+        std::shared_ptr<Workspace> TargetWorkspace = WM.Workspaces[WorkspaceInt];
+        if (TargetWorkspace->FullscreenContainer != nullptr) { // Untoggle fullscreen window
+            auto TargetContainer = TargetWorkspace->FullscreenContainer;
+            TargetWorkspace->FullscreenContainer = nullptr;
+            UpdateWindowToCurrentSplits(TargetContainer);
+        } else { // Fullscreen the focused window
+            TargetWorkspace->FullscreenContainer = WM.FocusedContainer;
+            UpdateWindowToCurrentSplits(WM.FocusedContainer);
+        }
+    } else {
+        std::cerr << "No focused container to fullscreen / unfullscreen! [EXIT]" << std::endl;
+    }
 }
 
 // ! EVENT LOOP FUNCTIONS
