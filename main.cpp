@@ -554,10 +554,12 @@ void ToggleFullscreen() {
         int WorkspaceInt = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
         std::shared_ptr<Workspace> TargetWorkspace = WM.Workspaces[WorkspaceInt];
         if (TargetWorkspace->FullscreenContainer != nullptr) { // Untoggle fullscreen window
+            std::cout << "Untoggling fullscreen for Window: " << WM.FocusedContainer->Value->Window << std::endl;
             auto TargetContainer = TargetWorkspace->FullscreenContainer;
             TargetWorkspace->FullscreenContainer = nullptr;
             UpdateWindowToCurrentSplits(TargetContainer);
         } else { // Fullscreen the focused window
+            std::cout << "Toggling fullscreen for Window: " << WM.FocusedContainer->Value->Window << std::endl;
             TargetWorkspace->FullscreenContainer = WM.FocusedContainer;
             SendWindowToFront(WM.FocusedContainer->Value->Window);
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
