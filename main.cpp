@@ -621,6 +621,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     NewContainer->Value = NewWindow;
 
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
+    bool FullscreenRefreshNeeded = false;
 
     if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
@@ -654,10 +655,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
                     std::cout << "Mapping window when there is a window fullscreened, changing focused container to new focused container" << std::endl;
                     ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
+                    FullscreenRefreshNeeded = true;
                 }
                 WM.FocusedContainer = NewFocusedContainer;
-
-                UpdateWindowToCurrentSplits(WM.FocusedContainer);
+                if (FullscreenRefreshNeeded == false) { UpdateWindowToCurrentSplits(WM.FocusedContainer); }
 
             } else {
                 std::cerr << "Focused window is " << WM.FocusedContainer->Value->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
@@ -675,7 +676,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
     UpdateWindowToCurrentSplits(NewContainer);
-
+    if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); } // We map the fullscreened window after so it appears ontop
     std::cout << "ADDED! " << Event->window << std::endl;
     PrintVisibleWindows();
 
