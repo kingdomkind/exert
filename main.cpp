@@ -260,6 +260,13 @@ std::shared_ptr<Monitor> GetMonitorFromWorkspace_PossibleNullptr(int Workspace) 
     return nullptr;
 }
 
+void SendWindowToFront(xcb_window_t Window) {
+    uint32_t Parameters[] = { XCB_STACK_MODE_ABOVE };
+    xcb_configure_window(WM.Connection, Window, XCB_CONFIG_WINDOW_STACK_MODE, Parameters);
+    xcb_flush(WM.Connection);
+}
+
+
 unsigned int GetActiveWorkspaceEnsureValid(std::shared_ptr<Monitor> MonitorToCheck) {
     int ActiveWorkspace = MonitorToCheck->ActiveWorkspace;
     if (ActiveWorkspace != -1) {
@@ -552,6 +559,7 @@ void ToggleFullscreen() {
             UpdateWindowToCurrentSplits(TargetContainer);
         } else { // Fullscreen the focused window
             TargetWorkspace->FullscreenContainer = WM.FocusedContainer;
+            SendWindowToFront(WM.FocusedContainer->Value->Window);
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
         }
     } else {
