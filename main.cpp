@@ -563,7 +563,7 @@ void ToggleFullscreen() {
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
         }
     } else {
-        std::cerr << "No focused container to fullscreen / unfullscreen! [EXIT]" << std::endl;
+        std::cerr << "No focused container to fullscreen / unfullscreen" << std::endl;
     }
 }
 
