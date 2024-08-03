@@ -653,6 +653,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
 
                 WM.FocusedContainer = NewFocusedContainer;
                 if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
+                    std::cout << "Mapping window when there is a window fullscreened, changing focused container to new focused container" << std::endl;
                     ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
                 }
 
