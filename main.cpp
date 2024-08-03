@@ -652,6 +652,10 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
                 }
 
                 WM.FocusedContainer = NewFocusedContainer;
+                if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
+                    ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
+                }
+
                 UpdateWindowToCurrentSplits(WM.FocusedContainer);
 
             } else {
