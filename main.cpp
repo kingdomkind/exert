@@ -676,12 +676,11 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
     UpdateWindowToCurrentSplits(NewContainer);
-    if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); } // We map the fullscreened window after so it appears ontop
     std::cout << "ADDED! " << Event->window << std::endl;
     PrintVisibleWindows();
-
     xcb_map_window(WM.Connection, Event->window);
     xcb_flush(WM.Connection);
+    if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); } // We map the fullscreened window after so it appears ontop
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
