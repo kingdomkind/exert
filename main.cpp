@@ -566,6 +566,7 @@ void ToggleFullscreen() {
         } else { // Fullscreen the focused window
             std::cout << "Toggling fullscreen for Window: " << WM.FocusedContainer->Value->Window << std::endl;
             TargetWorkspace->FullscreenContainer = WM.FocusedContainer;
+            std::cout << "Set workspace " << WorkspaceInt << " fullscreen container to " << TargetWorkspace->FullscreenContainer << "(Should be same as " << WM.FocusedContainer << ")" << std::endl; 
             SendWindowToFront(WM.FocusedContainer->Value->Window);
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
         }
