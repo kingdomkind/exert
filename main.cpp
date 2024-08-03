@@ -560,7 +560,7 @@ void ToggleFullscreen() {
             auto TargetContainer = TargetWorkspace->FullscreenContainer;
             std::cout << "Crash1" << std::endl;
             TargetWorkspace->FullscreenContainer = nullptr;
-            std::cout << "Crash2" << std::endl;
+            std::cout << "Crash2: " << TargetWorkspace->FullscreenContainer << std::endl;
             UpdateWindowToCurrentSplits(TargetContainer);
             std::cout << "Crash3" << std::endl;
         } else { // Fullscreen the focused window
