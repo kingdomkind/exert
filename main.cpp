@@ -314,6 +314,8 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
             }
             std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
         }
+    } else {
+        std::cout << "Setting fullscreened window to max res" << std::endl;
     }
 
     uint32_t Parameters[] = {X, Y, Width, Height};
