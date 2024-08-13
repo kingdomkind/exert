@@ -65,6 +65,7 @@ A container can either define a split, or can be a "holding" struct for a window
 If Direction is None it will have a Value / associated window (and no left / right pointer), otherwise it will have no value (and have left / right pointers) */
 struct Container {
     Split Direction;
+    float Ratio = 0.75; // Must be between 0 and 1 
     
     std::shared_ptr<Container> Parent = nullptr;
     std::shared_ptr<Container> Left = nullptr;
@@ -306,11 +307,11 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
             Stack.pop();
 
             if (TopContainer->Direction == VERTICAL) {
-                Width = Width * 0.5;
-                if (TopContainer->Right == Stack.top()) { X += Width; }
+                //Width = Width * 0.5;
+                if (TopContainer->Right == Stack.top()) { Width = Width * TopContainer->Ratio; X += Width; } else { Width = Width * (1 - TopContainer->Ratio); }
             } else {
-                Height = Height * 0.5;
-                if (TopContainer->Right == Stack.top()) { Y += Height; } 
+                //Height = Height * 0.5;
+                if (TopContainer->Right == Stack.top()) { Height = Height * TopContainer->Ratio; Y += Height; } else { Height = Height * (1 - TopContainer->Ratio); }
             }
             std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
         }
