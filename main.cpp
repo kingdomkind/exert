@@ -742,7 +742,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
     {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
-    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else { ResizeActiveWindow(RIGHT); }}},
+    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
@@ -919,6 +919,8 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_f), {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Left), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Right), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Up), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Down), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}});
 
     Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "brave"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
