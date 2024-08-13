@@ -370,6 +370,21 @@ WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
     if (RatioX < 0.5) { return LEFT; } else { return RIGHT; }
 }
 
+void UpdateWindowSplitsRecursively(std::shared_ptr<Container> BaseContainer) {
+    std::stack<std::shared_ptr<Container>> Stack;
+    Stack.push(BaseContainer);
+    while (!Stack.empty()) {
+        std::shared_ptr<Container> CurrentContainer = Stack.top();
+        Stack.pop();
+        if (CurrentContainer->Direction == NONE) {
+            UpdateWindowToCurrentSplits(CurrentContainer);
+        } else {
+            if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
+            if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
+         }
+    }
+}
+
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
     std::cout << "Removing container from WM" << std::endl;
     if (!(ToBeRemoved->Parent == nullptr)) {
@@ -397,24 +412,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
         PrintVisibleWindows();
 
 	    // Update the splits for all affected windows
-        std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(PromotionContainer);
-        while (!Stack.empty()) {
-            std::shared_ptr<Container> CurrentContainer = Stack.top();
-	    std::cout << "Iterating removal stack over: " << CurrentContainer << std::endl;
-            Stack.pop();
-
-	    if (CurrentContainer == ToBeRemoved) {
-		std::cerr << "Impossible - This container should no longer exist! [EXIT]" << std::endl;
-		exit(EXIT_FAILURE);
-	    }
-            if (CurrentContainer->Direction == NONE) {
-                UpdateWindowToCurrentSplits(CurrentContainer);
-            } else {
-                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
-                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
-            }
-        }
+        UpdateWindowSplitsRecursively(PromotionContainer);
 
     } else {
         WM.Workspaces[Workspace]->RootContainer = nullptr;
@@ -484,10 +482,12 @@ void ResizeActiveWindow(WindowSegment Direction) {
                 if (TargetContainer->get()->Left == *PrevContainer) { // We can only expand to the right
                     if (Direction == RIGHT) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                        UpdateWindowSplitsRecursively(*TargetContainer);
                     }
                 } else { // We can only expand to the left
                     if (Direction == LEFT) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                        UpdateWindowSplitsRecursively(*TargetContainer);
                     }
                 }
             }
