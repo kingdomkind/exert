@@ -482,10 +482,16 @@ void ResizeActiveWindow(WindowSegment Direction) {
                     if (Direction == RIGHT || Direction == DOWN) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
                         UpdateWindowSplitsRecursively(*TargetContainer);
+                    } else {
+                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                        UpdateWindowSplitsRecursively(*TargetContainer);
                     }
                 } else { // We can only expand to the left
                     if (Direction == LEFT || Direction == UP) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                        UpdateWindowSplitsRecursively(*TargetContainer);
+                    } else {
+                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
                         UpdateWindowSplitsRecursively(*TargetContainer);
                     }
                 }
