@@ -477,15 +477,14 @@ void ResizeActiveWindow(WindowSegment Direction) {
         while (TargetContainer->get()->Parent != nullptr) {
             std::shared_ptr<Container>* PrevContainer = TargetContainer;
             TargetContainer = &TargetContainer->get()->Parent;
-
             if (TargetContainer->get()->Direction == TargetSplit) {
                 if (TargetContainer->get()->Left == *PrevContainer) { // We can only expand to the right
-                    if (Direction == RIGHT) {
+                    if (Direction == RIGHT || Direction == DOWN) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
                         UpdateWindowSplitsRecursively(*TargetContainer);
                     }
                 } else { // We can only expand to the left
-                    if (Direction == LEFT) {
+                    if (Direction == LEFT || Direction == UP) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
                         UpdateWindowSplitsRecursively(*TargetContainer);
                     }
