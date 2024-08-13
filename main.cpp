@@ -308,10 +308,10 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
             if (TopContainer->Direction == VERTICAL) {
                 //Width = Width * 0.5;
-                if (TopContainer->Right == Stack.top()) { Width = Width * TopContainer->Ratio; X += Width; } else { Width = Width * (1 - TopContainer->Ratio); }
+                if (TopContainer->Right == Stack.top()) { Width = Width * (1-TopContainer->Ratio); X += Width; } else { Width = Width * (TopContainer->Ratio); }
             } else {
                 //Height = Height * 0.5;
-                if (TopContainer->Right == Stack.top()) { Height = Height * TopContainer->Ratio; Y += Height; } else { Height = Height * (1 - TopContainer->Ratio); }
+                if (TopContainer->Right == Stack.top()) { Height = Height * (1-TopContainer->Ratio); Y += Height; } else { Height = Height * (TopContainer->Ratio); }
             }
             std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
         }
