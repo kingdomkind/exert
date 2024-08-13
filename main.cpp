@@ -123,6 +123,7 @@ struct Runtime {
 };
 
 const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000}; // The position of windows (x,y) which are offscreen (ie. their workspace is not active)
+const float RESIZE_INCREMEMNT = 0.05;
 
 static Runtime Runtime;
 static WM WM;
@@ -307,10 +308,8 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
             Stack.pop();
 
             if (TopContainer->Direction == VERTICAL) {
-                //Width = Width * 0.5;
                 if (TopContainer->Right == Stack.top()) { X += Width * (TopContainer->Ratio); Width *= (1-TopContainer->Ratio); } else { Width *= (TopContainer->Ratio); }
             } else {
-                //Height = Height * 0.5;
                 if (TopContainer->Right == Stack.top()) { Y += Height * (TopContainer->Ratio); Height *= (1-TopContainer->Ratio); } else { Height *= (TopContainer->Ratio); }
             }
             std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
@@ -471,6 +470,31 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 }
 
 // ! COMMANDS
+void ResizeActiveWindow(WindowSegment Direction) {
+    Split TargetSplit;
+    if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }
+    
+    if (WM.FocusedContainer != nullptr) {
+        std::shared_ptr<Container>* TargetContainer = &WM.FocusedContainer;
+        while (TargetContainer->get()->Parent != nullptr) {
+            std::shared_ptr<Container>* PrevContainer = TargetContainer;
+            TargetContainer = &TargetContainer->get()->Parent;
+
+            if (TargetContainer->get()->Direction == TargetSplit) {
+                if (TargetContainer->get()->Left == *PrevContainer) { // We can only expand to the right
+                    if (Direction == RIGHT) {
+                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                    }
+                } else { // We can only expand to the left
+                    if (Direction == LEFT) {
+                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                    }
+                }
+            }
+        }
+    } 
+}
+
 void KillWindow(xcb_window_t Window) {
     if (DoesWindowSupportProtocol(Window, WM.ProtocolsContainer.DeleteWindow)) {
         std::cout << "Soft killing window: " << Window << std::endl;
@@ -719,6 +743,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
     {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
+    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else { ResizeActiveWindow(RIGHT); }}},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
@@ -893,6 +918,9 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_f), {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Left), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Right), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}});
+
     Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "brave"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
