@@ -65,7 +65,7 @@ A container can either define a split, or can be a "holding" struct for a window
 If Direction is None it will have a Value / associated window (and no left / right pointer), otherwise it will have no value (and have left / right pointers) */
 struct Container {
     Split Direction;
-    float Ratio = 0.75; // Must be between 0 and 1 
+    float Ratio = 0.5; // Must be between 0 and 1 
     
     std::shared_ptr<Container> Parent = nullptr;
     std::shared_ptr<Container> Left = nullptr;
