@@ -901,6 +901,8 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_4, "wpctl set-default 56"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_4, "wpctl set-default 43"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_r), {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}});
     // Workspaces
     Runtime.Keybinds.insert({KeysymToKeycode(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
