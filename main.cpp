@@ -770,7 +770,7 @@ void RunEventLoop() {
 
     while (true) {
         xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
-        std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
+        // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
             case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
@@ -778,7 +778,7 @@ void RunEventLoop() {
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { HandleFullScreenRequest(NextEvent); break; }
-            default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
+            // default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
         }
     }
 }
