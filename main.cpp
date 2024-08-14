@@ -554,7 +554,7 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 // ! COMMANDS
 void MoveActiveWIndow() {
     static int WindowToMove = -1;
-    if (WindowToMove == 1) {
+    if (WindowToMove == -1) {
         if (WM.FocusedContainer != nullptr) {
             WindowToMove = WM.FocusedContainer->Value->Window;
             xcb_unmap_window(WM.Connection, WindowToMove);
