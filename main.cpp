@@ -656,47 +656,40 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
     bool FullscreenRefreshNeeded = false;
 
-    if (!(ActiveWorkspace->RootContainer == nullptr)) { // Need to create a split, this isn't the first window opened
-        if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
-            xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
+    if (ActiveWorkspace->RootContainer != nullptr) { // Need to create a split, this isn't the first window opened
+        if (WM.FocusedContainer != nullptr) { // Create window size & splits based on the focused window
 
-            if (true) {
-                WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
+            WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
+            std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
+            NewFocusedContainer->Direction = NONE;
+            NewFocusedContainer->Value = WM.FocusedContainer->Value;
+            NewFocusedContainer->Parent = WM.FocusedContainer;
+            NewContainer->Parent = WM.FocusedContainer;
 
-                std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
-                NewFocusedContainer->Direction = NONE;
-                NewFocusedContainer->Value = WM.FocusedContainer->Value;
-                NewFocusedContainer->Parent = WM.FocusedContainer;
-                NewContainer->Parent = WM.FocusedContainer;
+            WM.FocusedContainer->Value = nullptr;
 
-                WM.FocusedContainer->Value = nullptr;
-
-                if (Section == UP || Section == DOWN) {
-                    WM.FocusedContainer->Direction = HORIZONTAL;
-                } else {
-                    WM.FocusedContainer->Direction = VERTICAL;
-                }
-
-                if (Section == RIGHT || Section == DOWN) {
-                    WM.FocusedContainer->Right = NewContainer;
-                    WM.FocusedContainer->Left = NewFocusedContainer;
-                } else {
-                    WM.FocusedContainer->Left = NewContainer;
-                    WM.FocusedContainer->Right = NewFocusedContainer;
-                }
-
-                if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
-                    std::cout << "Mapping window when there is a window fullscreened, changing focused container to new focused container" << std::endl;
-                    ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
-                    FullscreenRefreshNeeded = true;
-                }
-                WM.FocusedContainer = NewFocusedContainer;
-                if (FullscreenRefreshNeeded == false) { UpdateWindowToCurrentSplits(WM.FocusedContainer); }
-
+            if (Section == UP || Section == DOWN) {
+                WM.FocusedContainer->Direction = HORIZONTAL;
             } else {
-                std::cerr << "Focused window is " << WM.FocusedContainer->Value->Window << "but was unable to get the window geometry!" << " [EXIT] " <<  std::endl;
-                exit(EXIT_FAILURE);
+                WM.FocusedContainer->Direction = VERTICAL;
             }
+
+            if (Section == RIGHT || Section == DOWN) {
+                WM.FocusedContainer->Right = NewContainer;
+                WM.FocusedContainer->Left = NewFocusedContainer;
+            } else {
+                WM.FocusedContainer->Left = NewContainer;
+                WM.FocusedContainer->Right = NewFocusedContainer;
+            }
+
+            if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
+                std::cout << "Mapping window when there is a window fullscreened, changing focused container to new focused container" << std::endl;
+                ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
+                FullscreenRefreshNeeded = true;
+            }
+            WM.FocusedContainer = NewFocusedContainer;
+            if (FullscreenRefreshNeeded == false) { UpdateWindowToCurrentSplits(WM.FocusedContainer); }
+
         } else {
             std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
             exit(EXIT_FAILURE);
