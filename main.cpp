@@ -123,7 +123,7 @@ struct Runtime {
 };
 
 const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000}; // The position of windows (x,y) which are offscreen (ie. their workspace is not active)
-const float RESIZE_INCREMEMNT = 0.05;
+const float RESIZE_INCREMEMNT = 0.01;
 
 static Runtime Runtime;
 static WM WM;
@@ -478,7 +478,14 @@ void ResizeActiveWindow(WindowSegment Direction) {
             std::shared_ptr<Container>* PrevContainer = TargetContainer;
             TargetContainer = &TargetContainer->get()->Parent;
             if (TargetContainer->get()->Direction == TargetSplit) {
-                if (TargetContainer->get()->Left == *PrevContainer) { // We can only expand to the right
+                if (Direction == RIGHT || Direction == DOWN) {
+                    TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                } else {
+                    TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                }
+                UpdateWindowSplitsRecursively(*TargetContainer);
+                break;
+                /* if (TargetContainer->get()->Left == *PrevContainer) { // We can only expand to the right
                     if (Direction == RIGHT || Direction == DOWN) {
                         TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
                         UpdateWindowSplitsRecursively(*TargetContainer);
@@ -496,7 +503,7 @@ void ResizeActiveWindow(WindowSegment Direction) {
                         UpdateWindowSplitsRecursively(*TargetContainer);
                     }
                     break;
-                }
+                } */
             }
         }
     } 
