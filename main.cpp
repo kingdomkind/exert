@@ -471,6 +471,16 @@ void MapWindowToWM(unsigned int WindowToMap) {
 
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
     std::cout << "Removing container from WM" << std::endl;
+    if (WM.FocusedContainer == ToBeRemoved) {
+        WM.FocusedContainer = nullptr;
+        std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
+    }
+
+    if (WM.Workspaces[Workspace]->FullscreenContainer == ToBeRemoved) {
+        WM.Workspaces[Workspace]->FullscreenContainer = nullptr;
+        std::cout << "Fullscreened Container was deleted, setting to nullptr" << std::endl;    
+    }
+
     if (!(ToBeRemoved->Parent == nullptr)) {
         std::shared_ptr<Container> PromotionContainer; // We choose the other window to be promoted
         if (ToBeRemoved->Parent->Left == ToBeRemoved) {
@@ -501,16 +511,6 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
     } else {
         WM.Workspaces[Workspace]->RootContainer = nullptr;
         std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
-    }
-
-    if (WM.FocusedContainer == ToBeRemoved) {
-        WM.FocusedContainer = nullptr;
-        std::cout << "Focused Container was deleted, setting to nullptr" << std::endl;    
-    }
-
-    if (WM.Workspaces[Workspace]->FullscreenContainer == ToBeRemoved) {
-        WM.Workspaces[Workspace]->FullscreenContainer = nullptr;
-        std::cout << "Fullscreened Container was deleted, setting to nullptr" << std::endl;    
     }
 }
 
