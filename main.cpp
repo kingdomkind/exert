@@ -623,22 +623,19 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     std::cout << "Finished setting focus" << std::endl;
 }
 
-void OnMapRequest(const xcb_generic_event_t* NextEvent) {
-    std::cout << "Map request recieved" << std::endl;
-    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
-
+void MapWindowToWM(unsigned int WindowToMap) {
     // Check if window is a popup or similar, if so map it to the center of the current monitor
-    xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, Event->window, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
+    xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, WindowToMap, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
     if (WindowTypeReply) {
         if (WindowTypeReply->type == XCB_ATOM_ATOM && WindowTypeReply->format == 32 && WindowTypeReply->length > 0) {
             xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
             for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
                 if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
-                    std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << Event->window << std::endl;
+                    std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << WindowToMap << std::endl;
                     auto CurrentMonitor = GetActiveMonitor();
                     uint32_t Parameters[] = {static_cast<uint32_t>(CurrentMonitor->X+CurrentMonitor->Width/4), static_cast<uint32_t>(CurrentMonitor->Y+CurrentMonitor->Height/4), static_cast<uint32_t>(CurrentMonitor->Width/2), static_cast<uint32_t>(CurrentMonitor->Height/2)};
-                    xcb_configure_window(WM.Connection, Event->window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
-                    xcb_map_window(WM.Connection, Event->window);
+                    xcb_configure_window(WM.Connection, WindowToMap, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
+                    xcb_map_window(WM.Connection, WindowToMap);
                     xcb_flush(WM.Connection);
                     return;
                 }
@@ -647,7 +644,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     }
 
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
-    NewWindow->Window = Event->window;
+    NewWindow->Window = WindowToMap;
     std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
     NewContainer->Direction = NONE;
     NewContainer->Parent = nullptr;
@@ -700,14 +697,20 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     }
 
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    xcb_change_window_attributes(WM.Connection, Event->window, XCB_CW_EVENT_MASK, &EventMasks);
+    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
     UpdateWindowToCurrentSplits(NewContainer);
     if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); SendWindowToFront(WM.FocusedContainer->Value->Window); } // We map the fullscreened window after so it appears ontop
-    std::cout << "ADDED! " << Event->window << std::endl;
+    std::cout << "ADDED! " << WindowToMap << std::endl;
     PrintVisibleWindows();
 
-    xcb_map_window(WM.Connection, Event->window);
+    xcb_map_window(WM.Connection, WindowToMap);
     xcb_flush(WM.Connection);
+}
+
+void OnMapRequest(const xcb_generic_event_t* NextEvent) {
+    std::cout << "Map request recieved" << std::endl;
+    xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
+    MapWindowToWM(Event->window);
 }
 
 void OnUnMapNotify(const xcb_generic_event_t* NextEvent) {
