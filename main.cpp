@@ -385,6 +385,90 @@ void UpdateWindowSplitsRecursively(std::shared_ptr<Container> BaseContainer) {
     }
 }
 
+void MapWindowToWM(unsigned int WindowToMap) {
+    // Check if window is a popup or similar, if so map it to the center of the current monitor
+    xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, WindowToMap, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
+    if (WindowTypeReply) {
+        if (WindowTypeReply->type == XCB_ATOM_ATOM && WindowTypeReply->format == 32 && WindowTypeReply->length > 0) {
+            xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
+            for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
+                if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
+                    std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << WindowToMap << std::endl;
+                    auto CurrentMonitor = GetActiveMonitor();
+                    uint32_t Parameters[] = {static_cast<uint32_t>(CurrentMonitor->X+CurrentMonitor->Width/4), static_cast<uint32_t>(CurrentMonitor->Y+CurrentMonitor->Height/4), static_cast<uint32_t>(CurrentMonitor->Width/2), static_cast<uint32_t>(CurrentMonitor->Height/2)};
+                    xcb_configure_window(WM.Connection, WindowToMap, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
+                    xcb_map_window(WM.Connection, WindowToMap);
+                    xcb_flush(WM.Connection);
+                    return;
+                }
+            }
+        }
+    }
+
+    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
+    NewWindow->Window = WindowToMap;
+    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
+    NewContainer->Direction = NONE;
+    NewContainer->Parent = nullptr;
+    NewContainer->Value = NewWindow;
+
+    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
+    bool FullscreenRefreshNeeded = false;
+
+    if (ActiveWorkspace->RootContainer != nullptr) { // Need to create a split, this isn't the first window opened
+        if (WM.FocusedContainer != nullptr) { // Create window size & splits based on the focused window
+
+            WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
+            std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
+            NewFocusedContainer->Direction = NONE;
+            NewFocusedContainer->Value = WM.FocusedContainer->Value;
+            NewFocusedContainer->Parent = WM.FocusedContainer;
+            NewContainer->Parent = WM.FocusedContainer;
+
+            WM.FocusedContainer->Value = nullptr;
+
+            if (Section == UP || Section == DOWN) {
+                WM.FocusedContainer->Direction = HORIZONTAL;
+            } else {
+                WM.FocusedContainer->Direction = VERTICAL;
+            }
+
+            if (Section == RIGHT || Section == DOWN) {
+                WM.FocusedContainer->Right = NewContainer;
+                WM.FocusedContainer->Left = NewFocusedContainer;
+            } else {
+                WM.FocusedContainer->Left = NewContainer;
+                WM.FocusedContainer->Right = NewFocusedContainer;
+            }
+
+            if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
+                std::cout << "Mapping window when there is a window fullscreened, changing focused container to new focused container" << std::endl;
+                ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
+                FullscreenRefreshNeeded = true;
+            }
+            WM.FocusedContainer = NewFocusedContainer;
+            if (FullscreenRefreshNeeded == false) { UpdateWindowToCurrentSplits(WM.FocusedContainer); }
+
+        } else {
+            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    } else { // First window opened
+        std::cout << "No root, making new root" << std::endl;
+        ActiveWorkspace->RootContainer = NewContainer;
+    }
+
+    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
+    UpdateWindowToCurrentSplits(NewContainer);
+    if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); SendWindowToFront(WM.FocusedContainer->Value->Window); } // We map the fullscreened window after so it appears ontop
+    std::cout << "ADDED! " << WindowToMap << std::endl;
+    PrintVisibleWindows();
+
+    xcb_map_window(WM.Connection, WindowToMap);
+    xcb_flush(WM.Connection);
+}
+
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
     std::cout << "Removing container from WM" << std::endl;
     if (!(ToBeRemoved->Parent == nullptr)) {
@@ -479,7 +563,8 @@ void MoveActiveWIndow() {
             }
         }
     } else {
-
+        MapWindowToWM(ContainerToMove->get()->Value->Window);
+        ContainerToMove = nullptr;
     }
 }
 
@@ -623,90 +708,6 @@ void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     std::cout << "Finished setting focus" << std::endl;
 }
 
-void MapWindowToWM(unsigned int WindowToMap) {
-    // Check if window is a popup or similar, if so map it to the center of the current monitor
-    xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, WindowToMap, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
-    if (WindowTypeReply) {
-        if (WindowTypeReply->type == XCB_ATOM_ATOM && WindowTypeReply->format == 32 && WindowTypeReply->length > 0) {
-            xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
-            for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
-                if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
-                    std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << WindowToMap << std::endl;
-                    auto CurrentMonitor = GetActiveMonitor();
-                    uint32_t Parameters[] = {static_cast<uint32_t>(CurrentMonitor->X+CurrentMonitor->Width/4), static_cast<uint32_t>(CurrentMonitor->Y+CurrentMonitor->Height/4), static_cast<uint32_t>(CurrentMonitor->Width/2), static_cast<uint32_t>(CurrentMonitor->Height/2)};
-                    xcb_configure_window(WM.Connection, WindowToMap, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
-                    xcb_map_window(WM.Connection, WindowToMap);
-                    xcb_flush(WM.Connection);
-                    return;
-                }
-            }
-        }
-    }
-
-    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
-    NewWindow->Window = WindowToMap;
-    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
-    NewContainer->Direction = NONE;
-    NewContainer->Parent = nullptr;
-    NewContainer->Value = NewWindow;
-
-    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
-    bool FullscreenRefreshNeeded = false;
-
-    if (ActiveWorkspace->RootContainer != nullptr) { // Need to create a split, this isn't the first window opened
-        if (WM.FocusedContainer != nullptr) { // Create window size & splits based on the focused window
-
-            WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
-            std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
-            NewFocusedContainer->Direction = NONE;
-            NewFocusedContainer->Value = WM.FocusedContainer->Value;
-            NewFocusedContainer->Parent = WM.FocusedContainer;
-            NewContainer->Parent = WM.FocusedContainer;
-
-            WM.FocusedContainer->Value = nullptr;
-
-            if (Section == UP || Section == DOWN) {
-                WM.FocusedContainer->Direction = HORIZONTAL;
-            } else {
-                WM.FocusedContainer->Direction = VERTICAL;
-            }
-
-            if (Section == RIGHT || Section == DOWN) {
-                WM.FocusedContainer->Right = NewContainer;
-                WM.FocusedContainer->Left = NewFocusedContainer;
-            } else {
-                WM.FocusedContainer->Left = NewContainer;
-                WM.FocusedContainer->Right = NewFocusedContainer;
-            }
-
-            if (ActiveWorkspace->FullscreenContainer == WM.FocusedContainer) {
-                std::cout << "Mapping window when there is a window fullscreened, changing focused container to new focused container" << std::endl;
-                ActiveWorkspace->FullscreenContainer = NewFocusedContainer;
-                FullscreenRefreshNeeded = true;
-            }
-            WM.FocusedContainer = NewFocusedContainer;
-            if (FullscreenRefreshNeeded == false) { UpdateWindowToCurrentSplits(WM.FocusedContainer); }
-
-        } else {
-            std::cerr << "Unable to create window as the focused window is nullptr, yet there are windows opened!" << " [EXIT] " << std::endl;
-            exit(EXIT_FAILURE);
-        }
-    } else { // First window opened
-        std::cout << "No root, making new root" << std::endl;
-        ActiveWorkspace->RootContainer = NewContainer;
-    }
-
-    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
-    UpdateWindowToCurrentSplits(NewContainer);
-    if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); SendWindowToFront(WM.FocusedContainer->Value->Window); } // We map the fullscreened window after so it appears ontop
-    std::cout << "ADDED! " << WindowToMap << std::endl;
-    PrintVisibleWindows();
-
-    xcb_map_window(WM.Connection, WindowToMap);
-    xcb_flush(WM.Connection);
-}
-
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
     std::cout << "Map request recieved" << std::endl;
     xcb_map_request_event_t* Event = (xcb_map_request_event_t*)NextEvent;
@@ -748,6 +749,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
     {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
     {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
+    {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWIndow(); }},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
