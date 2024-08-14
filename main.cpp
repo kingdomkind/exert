@@ -557,10 +557,8 @@ void MoveActiveWIndow() {
     if (ContainerToMove == nullptr) {
         if (WM.FocusedContainer != nullptr) {
             ContainerToMove = &WM.FocusedContainer;
-            auto Result = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window);
-            if (Result != nullptr) {
-                RemoveContainerFromWM(Result->Container, Result->Workspace);
-            }
+            xcb_unmap_window(WM.Connection, ContainerToMove->get()->Value->Window);
+            xcb_flush(WM.Connection);
         }
     } else {
         MapWindowToWM(ContainerToMove->get()->Value->Window);
