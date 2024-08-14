@@ -468,14 +468,27 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 }
 
 // ! COMMANDS
+void MoveActiveWIndow() {
+    static std::shared_ptr<Container>* ContainerToMove = nullptr;
+    if (ContainerToMove == nullptr) {
+        if (WM.FocusedContainer != nullptr) {
+            ContainerToMove = &WM.FocusedContainer;
+            auto Result = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window);
+            if (Result != nullptr) {
+                RemoveContainerFromWM(Result->Container, Result->Workspace);
+            }
+        }
+    } else {
+
+    }
+}
+
 void ResizeActiveWindow(WindowSegment Direction) {
     Split TargetSplit;
-    if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }
-    
+    if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }    
     if (WM.FocusedContainer != nullptr) {
         std::shared_ptr<Container>* TargetContainer = &WM.FocusedContainer;
         while (TargetContainer->get()->Parent != nullptr) {
-            std::shared_ptr<Container>* PrevContainer = TargetContainer;
             TargetContainer = &TargetContainer->get()->Parent;
             if (TargetContainer->get()->Direction == TargetSplit) {
                 if (Direction == RIGHT || Direction == DOWN) {
@@ -485,25 +498,6 @@ void ResizeActiveWindow(WindowSegment Direction) {
                 }
                 UpdateWindowSplitsRecursively(*TargetContainer);
                 break;
-                /* if (TargetContainer->get()->Left == *PrevContainer) { // We can only expand to the right
-                    if (Direction == RIGHT || Direction == DOWN) {
-                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
-                        UpdateWindowSplitsRecursively(*TargetContainer);
-                    } else {
-                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
-                        UpdateWindowSplitsRecursively(*TargetContainer);
-                    }
-                    break;
-                } else { // We can only expand to the left
-                    if (Direction == LEFT || Direction == UP) {
-                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
-                        UpdateWindowSplitsRecursively(*TargetContainer);
-                    } else {
-                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
-                        UpdateWindowSplitsRecursively(*TargetContainer);
-                    }
-                    break;
-                } */
             }
         }
     } 
@@ -666,7 +660,7 @@ void OnMapRequest(const xcb_generic_event_t* NextEvent) {
         if (!(WM.FocusedContainer == nullptr)) { // Create window size & splits based on the focused window
             xcb_get_geometry_reply_t* FocusedWindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
 
-            if (FocusedWindowGeometry) {
+            if (true) {
                 WindowSegment Section = GetWindowSegmentCursorIsIn(WM.FocusedContainer->Value->Window);
 
                 std::shared_ptr<Container> NewFocusedContainer = std::make_shared<Container>();
@@ -804,24 +798,6 @@ void StartupWM() {
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
-void RunEventLoop() {
-    std::cout << "Running the event loop" << std::endl;
-
-    while (true) {
-        xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
-        // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
-        switch (NextEvent->response_type & ~0x80) {
-            case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
-            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
-            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
-            case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
-            case XCB_CLIENT_MESSAGE: { HandleFullScreenRequest(NextEvent); break; }
-            // default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
-        }
-    }
-}
-
 void InitialiseMonitors() {
     xcb_randr_get_screen_resources_current_cookie_t ResourcesCookie = xcb_randr_get_screen_resources_current(WM.Connection, WM.Screen->root);
     xcb_randr_get_screen_resources_current_reply_t* ResourcesReply = xcb_randr_get_screen_resources_current_reply(WM.Connection, ResourcesCookie, nullptr);
@@ -874,6 +850,24 @@ void InitialiseMonitors() {
     }
 
     free(ResourcesReply);
+}
+
+void RunEventLoop() {
+    std::cout << "Running the event loop" << std::endl;
+
+    while (true) {
+        xcb_generic_event_t* NextEvent = xcb_wait_for_event(WM.Connection);
+        // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
+        switch (NextEvent->response_type & ~0x80) {
+            case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
+            case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
+            case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
+            case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
+            case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
+            case XCB_CLIENT_MESSAGE: { HandleFullScreenRequest(NextEvent); break; }
+            // default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
+        }
+    }
 }
 
 int main() {
@@ -936,6 +930,7 @@ int main() {
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Right), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Up), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_Down), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}});
+    Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}});
 
     Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "brave"}});
     Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
