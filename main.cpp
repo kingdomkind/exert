@@ -857,7 +857,7 @@ void RunEventLoop() {
         // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
+            case XCB_KEY_PRESS: { std::cout << "Keypress!" << std::endl; OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
