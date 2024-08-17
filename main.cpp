@@ -789,7 +789,7 @@ void StartupWM() {
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {
-        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, KeysymToKeycode(Pair.first), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
@@ -916,6 +916,10 @@ int main() {
             std::cout << "Executing: " << Command << std::endl;
             execl("/bin/sh", "/bin/sh", "-c", Command.c_str(), (void *)NULL);
         }
+    }
+
+    if (fork() == 0) {
+        execl("/bin/sh", "/bin/sh", "-c", "kitty", (void *)NULL);
     }
 
     // * KEYBINDS PREV KeysymToKeycode
