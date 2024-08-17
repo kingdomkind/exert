@@ -118,6 +118,7 @@ struct WM {
 /* Stuff we configure */
 struct Runtime {
     std::multimap<unsigned int, struct Keybind> Keybinds; // Key is the letter / number / whatever associated with the keybind
+    std::unordered_set<std::string> Monitors; // Settings for monitors
     std::multimap<std::string, std::string> Exports; // Environment Variables
     std::unordered_set<std::string> StartupCommands; // Commands to run at boot
 };
@@ -125,8 +126,65 @@ struct Runtime {
 const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000}; // The position of windows (x,y) which are offscreen (ie. their workspace is not active)
 const float RESIZE_INCREMEMNT = 0.01;
 
-static Runtime Runtime;
 static WM WM;
+static Runtime Runtime = {
+    // * KEYBINDS
+    {
+        {XK_space, {XCB_MOD_MASK_4, "rofi -show drun"}},
+        {XK_m, {XCB_MOD_MASK_4, "exert-command ExitWM"}},
+        {XK_c, {XCB_MOD_MASK_4, "exert-command KillActive"}},
+        {XK_f, {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}},
+        {XK_Left, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}},
+        {XK_Right, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}},
+        {XK_Up, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}},
+        {XK_Down, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}},
+        {XK_x, {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}},
+        // Programs
+        {XK_d, {XCB_MOD_MASK_4, "brave"}},
+        {XK_q, {XCB_MOD_MASK_4, "alacritty"}},
+        {XK_z, {XCB_MOD_MASK_4, "vscodium"}},
+        {XK_w, {XCB_MOD_MASK_4, "virt-manager"}},
+        {XK_x, {XCB_MOD_MASK_4, "thunar"}},
+        {XK_e, {XCB_MOD_MASK_4, "notify-send \"$(date)\""}},
+        {XK_Insert, {XCB_MOD_MASK_4, "flameshot gui"}},
+        {XK_Page_Up, {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}},
+        {XK_Page_Down, {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}},
+        {XK_Page_Up, {XCB_MOD_MASK_4, "wpctl set-default 56"}},
+        {XK_Page_Down, {XCB_MOD_MASK_4, "wpctl set-default 43"}},
+        {XK_r, {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}},
+        // Workspaces
+        {XK_1, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}},
+        {XK_2, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}},
+        {XK_3, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 2"}},
+        {XK_4, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 3"}},
+        {XK_5, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 4"}},
+        {XK_6, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 5"}},
+        {XK_7, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 6"}},
+        {XK_8, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 7"}},
+        {XK_9, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}},
+    },
+
+    // * MONITOR SETTINGS
+    {
+        "xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --right-of DP-2",
+        "xrandr --output DP-2 --mode 3840x2160 --rate 119.91",
+    },
+
+    // * EXPORTS
+    {
+        {"XCURSOR_SIZE", "24"},
+        {"GTK_THEME", "Adwaita:dark"},
+    },
+
+    // * STARTUP COMMANDS
+    {
+        "dunst",
+        "flameshot",
+        "picom",
+        "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh",
+        "xset -dpms && xset s off",
+    }
+};
 
 // ! UTILITY FUNCTIONS
 xcb_atom_t GetAtom(std::string AtomName) {
@@ -753,7 +811,6 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keysym = KeycodeToKeysym(Event->detail);
-    std::cout << "Pressed: " << Keysym << std::endl;
     auto TargetRange = Runtime.Keybinds.equal_range(Keysym);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
@@ -857,7 +914,7 @@ void RunEventLoop() {
         // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            case XCB_KEY_PRESS: { std::cout << "Keypress!" << std::endl; OnKeyPress(NextEvent); break; }
+            case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
@@ -868,10 +925,6 @@ void RunEventLoop() {
 }
 
 int main() {
-    // * EXPORTS
-    Runtime.Exports.insert({"XCURSOR_SIZE", "24"});
-    Runtime.Exports.insert({"GTK_THEME", "Adwaita:dark"});
-
     for (auto Pair: Runtime.Exports) {
         setenv(Pair.first.c_str(), Pair.second.c_str(), 1);
     }
@@ -899,17 +952,10 @@ int main() {
     }
     std::cout << "Initialised the key symbols" << std::endl;
 
-    // * MONITOR SETTINGS
-    system("xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --right-of DP-2");
-    system("xrandr --output DP-2 --mode 3840x2160 --rate 119.91");
+    for (auto Setting: Runtime.Monitors) {
+        system(Setting.c_str());
+    }
     InitialiseMonitors();
-
-    // * STARTUP COMMANDS
-    Runtime.StartupCommands.insert("dunst");
-    Runtime.StartupCommands.insert("flameshot");
-    Runtime.StartupCommands.insert("picom");
-    Runtime.StartupCommands.insert("/home/pika/Config/scripts/wallpaper/change-wallpaper.sh");
-    Runtime.StartupCommands.insert("xset -dpms && xset s off");
 
     for (auto Command: Runtime.StartupCommands) {
         if (fork() == 0) {
@@ -917,44 +963,6 @@ int main() {
             execl("/bin/sh", "/bin/sh", "-c", Command.c_str(), (void *)NULL);
         }
     }
-
-    if (fork() == 0) {
-        execl("/bin/sh", "/bin/sh", "-c", "kitty", (void *)NULL);
-    }
-
-    // * KEYBINDS PREV KeysymToKeycode
-    Runtime.Keybinds.insert({(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
-    Runtime.Keybinds.insert({(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
-    Runtime.Keybinds.insert({(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
-    Runtime.Keybinds.insert({(XK_f), {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}});
-    Runtime.Keybinds.insert({(XK_Left), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}});
-    Runtime.Keybinds.insert({(XK_Right), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}});
-    Runtime.Keybinds.insert({(XK_Up), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}});
-    Runtime.Keybinds.insert({(XK_Down), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}});
-    Runtime.Keybinds.insert({(XK_x), {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}});
-
-    Runtime.Keybinds.insert({(XK_d), {XCB_MOD_MASK_4, "brave"}});
-    Runtime.Keybinds.insert({(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
-    Runtime.Keybinds.insert({(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
-    Runtime.Keybinds.insert({(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
-    Runtime.Keybinds.insert({(XK_x), {XCB_MOD_MASK_4, "thunar"}});
-    Runtime.Keybinds.insert({(XK_e), {XCB_MOD_MASK_4, "notify-send \"$(date)\""}});
-    Runtime.Keybinds.insert({(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
-    Runtime.Keybinds.insert({(XK_Page_Up), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}});
-    Runtime.Keybinds.insert({(XK_Page_Down), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}});
-    Runtime.Keybinds.insert({(XK_Page_Up), {XCB_MOD_MASK_4, "wpctl set-default 56"}});
-    Runtime.Keybinds.insert({(XK_Page_Down), {XCB_MOD_MASK_4, "wpctl set-default 43"}});
-    Runtime.Keybinds.insert({(XK_r), {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}});
-    // Workspaces
-    Runtime.Keybinds.insert({(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
-    Runtime.Keybinds.insert({(XK_2), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}});
-    Runtime.Keybinds.insert({(XK_3), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 2"}});
-    Runtime.Keybinds.insert({(XK_4), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 3"}});
-    Runtime.Keybinds.insert({(XK_5), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 4"}});
-    Runtime.Keybinds.insert({(XK_6), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 5"}});
-    Runtime.Keybinds.insert({(XK_7), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 6"}});
-    Runtime.Keybinds.insert({(XK_8), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 7"}});
-    Runtime.Keybinds.insert({(XK_9), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}});
 
     // Get Protocols
     WM.ProtocolsContainer.Protocols = GetAtom("WM_PROTOCOLS");
