@@ -538,7 +538,7 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 }
 
 // ! COMMANDS
-void SwapActiveWindowSides() {
+void ChangeActiveWindowSplitDirection() {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Parent != nullptr) {
             if (WM.FocusedContainer->Parent->Direction == VERTICAL) {
@@ -551,7 +551,7 @@ void SwapActiveWindowSides() {
     }
 }
 
-void ChangeActiveWindowSplitDirection() {
+void SwapActiveWindowSides() {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Parent != nullptr) {
             if (WM.FocusedContainer->Parent->Left == WM.FocusedContainer) {
