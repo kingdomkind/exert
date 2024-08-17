@@ -756,7 +756,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     auto TargetRange = Runtime.Keybinds.equal_range(Keysym);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
-            if ((Event->state & Pair->second.Modifier) && Keysym == Pair->first) {
+            if ((Event->state & Pair->second.Modifier)) {
                 std::string Prefix = "exert-command";
                 std::string Command = Pair->second.Command;
                 if (Command.rfind(Prefix, 0) == 0) {
