@@ -753,10 +753,11 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keysym = KeycodeToKeysym(Event->detail);
+    std::cout << "Pressed: " << Keysym << std::endl;
     auto TargetRange = Runtime.Keybinds.equal_range(Keysym);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
-            if ((Event->state & Pair->second.Modifier)) {
+            if ((Event->state & Pair->second.Modifier) && Keysym == Pair->first) {
                 std::string Prefix = "exert-command";
                 std::string Command = Pair->second.Command;
                 if (Command.rfind(Prefix, 0) == 0) {
