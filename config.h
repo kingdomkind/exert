@@ -4,7 +4,7 @@
 static Runtime Runtime = {
     // * KEYBINDS
     {
-        {XK_space, {XCB_MOD_MASK_4, "rofi -show drun"}},
+        // WM
         {XK_m, {XCB_MOD_MASK_4, "exert-command ExitWM"}},
         {XK_c, {XCB_MOD_MASK_4, "exert-command KillActive"}},
         {XK_f, {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}},
@@ -13,7 +13,10 @@ static Runtime Runtime = {
         {XK_Up, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}},
         {XK_Down, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}},
         {XK_x, {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}},
+        {XK_l, {XCB_MOD_MASK_4, "exert-command ChangeActiveWindowSplitDirection"}},
+        {XK_k, {XCB_MOD_MASK_4, "exert-command SwapActiveWindowSides"}},
         // Programs
+        {XK_space, {XCB_MOD_MASK_4, "rofi -show drun"}},
         {XK_d, {XCB_MOD_MASK_4, "brave"}},
         {XK_q, {XCB_MOD_MASK_4, "alacritty"}},
         {XK_z, {XCB_MOD_MASK_4, "vscodium"}},

@@ -538,7 +538,36 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 }
 
 // ! COMMANDS
-void MoveActiveWIndow() {
+void SwapActiveWindowSides() {
+    if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Parent != nullptr) {
+            if (WM.FocusedContainer->Parent->Direction == VERTICAL) {
+                WM.FocusedContainer->Parent->Direction = HORIZONTAL;
+            } else {
+                WM.FocusedContainer->Parent->Direction = VERTICAL;
+            }
+            UpdateWindowSplitsRecursively(WM.FocusedContainer->Parent);
+        }
+    }
+}
+
+void ChangeActiveWindowSplitDirection() {
+    if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Parent != nullptr) {
+            if (WM.FocusedContainer->Parent->Left == WM.FocusedContainer) {
+                WM.FocusedContainer->Parent->Left = WM.FocusedContainer->Parent->Right;
+                WM.FocusedContainer->Parent->Right = WM.FocusedContainer;
+            } else {
+                WM.FocusedContainer->Parent->Right = WM.FocusedContainer->Parent->Left;
+                WM.FocusedContainer->Parent->Left = WM.FocusedContainer;
+
+            }
+            UpdateWindowSplitsRecursively(WM.FocusedContainer->Parent);
+        }
+    }
+}
+
+void MoveActiveWindow() {
     static int WindowToMove = -1;
     if (WindowToMove == -1) {
         if (WM.FocusedContainer != nullptr) {
@@ -733,7 +762,9 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
     {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
     {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
-    {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWIndow(); }},
+    {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWindow(); }},
+    {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments){ ChangeActiveWindowSplitDirection(); }},
+    {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
