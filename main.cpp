@@ -752,11 +752,11 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
-    xcb_keycode_t Keycode = Event->detail;
-    auto TargetRange = Runtime.Keybinds.equal_range(Event->detail);
+    xcb_keycode_t Keysym = KeycodeToKeysym(Event->detail);
+    auto TargetRange = Runtime.Keybinds.equal_range(Keysym);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
-            if ((Event->state & Pair->second.Modifier) && Event->detail == Keycode) {
+            if ((Event->state & Pair->second.Modifier) && Keysym == Pair->first) {
                 std::string Prefix = "exert-command";
                 std::string Command = Pair->second.Command;
                 if (Command.rfind(Prefix, 0) == 0) {
@@ -899,7 +899,7 @@ int main() {
     std::cout << "Initialised the key symbols" << std::endl;
 
     // * MONITOR SETTINGS
-    system("xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --left-of DP-2");
+    system("xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --right-of DP-2");
     system("xrandr --output DP-2 --mode 3840x2160 --rate 119.91");
     InitialiseMonitors();
 
@@ -917,39 +917,39 @@ int main() {
         }
     }
 
-    // * KEYBINDS
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_f), {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Left), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Right), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Up), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Down), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}});
+    // * KEYBINDS PREV KeysymToKeycode
+    Runtime.Keybinds.insert({(XK_space), {XCB_MOD_MASK_4, "rofi -show drun"}});
+    Runtime.Keybinds.insert({(XK_m), {XCB_MOD_MASK_4, "exert-command ExitWM"}});
+    Runtime.Keybinds.insert({(XK_c), {XCB_MOD_MASK_4, "exert-command KillActive"}});
+    Runtime.Keybinds.insert({(XK_f), {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}});
+    Runtime.Keybinds.insert({(XK_Left), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}});
+    Runtime.Keybinds.insert({(XK_Right), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}});
+    Runtime.Keybinds.insert({(XK_Up), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}});
+    Runtime.Keybinds.insert({(XK_Down), {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}});
+    Runtime.Keybinds.insert({(XK_x), {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}});
 
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_d), {XCB_MOD_MASK_4, "brave"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_x), {XCB_MOD_MASK_4, "thunar"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_e), {XCB_MOD_MASK_4, "notify-send \"$(date)\""}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Up), {XCB_MOD_MASK_4, "wpctl set-default 56"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_Page_Down), {XCB_MOD_MASK_4, "wpctl set-default 43"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_r), {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}});
+    Runtime.Keybinds.insert({(XK_d), {XCB_MOD_MASK_4, "brave"}});
+    Runtime.Keybinds.insert({(XK_q), {XCB_MOD_MASK_4, "alacritty"}});
+    Runtime.Keybinds.insert({(XK_z), {XCB_MOD_MASK_4, "vscodium"}});
+    Runtime.Keybinds.insert({(XK_w), {XCB_MOD_MASK_4, "virt-manager"}});
+    Runtime.Keybinds.insert({(XK_x), {XCB_MOD_MASK_4, "thunar"}});
+    Runtime.Keybinds.insert({(XK_e), {XCB_MOD_MASK_4, "notify-send \"$(date)\""}});
+    Runtime.Keybinds.insert({(XK_Insert), {XCB_MOD_MASK_4, "flameshot gui"}});
+    Runtime.Keybinds.insert({(XK_Page_Up), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"}});
+    Runtime.Keybinds.insert({(XK_Page_Down), {XCB_MOD_MASK_CONTROL, "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"}});
+    Runtime.Keybinds.insert({(XK_Page_Up), {XCB_MOD_MASK_4, "wpctl set-default 56"}});
+    Runtime.Keybinds.insert({(XK_Page_Down), {XCB_MOD_MASK_4, "wpctl set-default 43"}});
+    Runtime.Keybinds.insert({(XK_r), {XCB_MOD_MASK_4, "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh"}});
     // Workspaces
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_2), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_3), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 2"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_4), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 3"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_5), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 4"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_6), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 5"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_7), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 6"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_8), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 7"}});
-    Runtime.Keybinds.insert({KeysymToKeycode(XK_9), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}});
+    Runtime.Keybinds.insert({(XK_1), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 0"}});
+    Runtime.Keybinds.insert({(XK_2), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 1"}});
+    Runtime.Keybinds.insert({(XK_3), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 2"}});
+    Runtime.Keybinds.insert({(XK_4), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 3"}});
+    Runtime.Keybinds.insert({(XK_5), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 4"}});
+    Runtime.Keybinds.insert({(XK_6), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 5"}});
+    Runtime.Keybinds.insert({(XK_7), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 6"}});
+    Runtime.Keybinds.insert({(XK_8), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 7"}});
+    Runtime.Keybinds.insert({(XK_9), {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}});
 
     // Get Protocols
     WM.ProtocolsContainer.Protocols = GetAtom("WM_PROTOCOLS");
