@@ -806,8 +806,11 @@ void StartupWM() {
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {
-        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, KeysymToKeycode(Pair.first), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
+
+    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_4, XK_Right, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
 
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
