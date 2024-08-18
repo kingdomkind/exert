@@ -770,12 +770,11 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
-    xcb_keycode_t Keysym = KeycodeToKeysym(Event->detail);
-    std::cout << "Key Pressed: Keycode = " << Event->detail << ", Keysym = " << Keysym << std::endl;
-    auto TargetRange = Runtime.Keybinds.equal_range(Keysym);
+    xcb_keycode_t Keycode = Event->detail;
+    auto TargetRange = Runtime.Keybinds.equal_range(Keycode);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
-            if ((Event->state & Pair->second.Modifier) && Keysym == Pair->first) {
+            if ((Event->state & Pair->second.Modifier) && Keycode == Pair->first) {
                 std::string Prefix = "exert-command";
                 std::string Command = Pair->second.Command;
                 if (Command.rfind(Prefix, 0) == 0) {
@@ -912,6 +911,14 @@ int main() {
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
+    for (auto Iterator = Runtime.Keybinds.begin(); Iterator != Runtime.Keybinds.end(); Iterator++) {
+        unsigned int Keysym = Iterator->first;
+        auto value = Iterator->second;
+        Runtime.Keybinds.erase(Iterator);
+
+        // Insert the modified entry with the new keycode
+        Runtime.Keybinds.insert({KeysymToKeycode(Keysym), value});
+    }
 
     for (auto Setting: Runtime.Monitors) {
         system(Setting.c_str());
