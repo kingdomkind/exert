@@ -806,7 +806,7 @@ void StartupWM() {
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {
-        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, KeysymToKeycode(Pair.first), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
 
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
@@ -911,14 +911,13 @@ int main() {
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
+    for (auto Iterator = Runtime.Keybinds.begin(); Iterator != Runtime.Keybinds.end(); Iterator++) {
+        unsigned int Keysym = Iterator->first;
+        auto value = Iterator->second;
+        Runtime.Keybinds.erase(Iterator);
 
-    std::multimap<unsigned int, struct Keybind> TempKeybinds;
-    for (const auto& Pair : Runtime.Keybinds) {
-        TempKeybinds.insert({KeysymToKeycode(Pair.first), Pair.second});
-    }
-    Runtime.Keybinds.clear();
-    for (const auto& Pair : TempKeybinds) {
-        Runtime.Keybinds.insert(Pair);
+        // Insert the modified entry with the new keycode
+        Runtime.Keybinds.insert({KeysymToKeycode(Keysym), value});
     }
 
     for (auto Setting: Runtime.Monitors) {
