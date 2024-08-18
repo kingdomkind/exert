@@ -911,13 +911,13 @@ int main() {
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
-    for (auto Iterator = Runtime.Keybinds.begin(); Iterator != Runtime.Keybinds.end(); Iterator++) {
-        unsigned int Keysym = Iterator->first;
-        auto value = Iterator->second;
-        Runtime.Keybinds.erase(Iterator);
-
-        // Insert the modified entry with the new keycode
-        Runtime.Keybinds.insert({KeysymToKeycode(Keysym), value});
+    std::multimap<unsigned int, struct Keybind> TempKeybinds;
+    for (const auto& Pair : Runtime.Keybinds) {
+        TempKeybinds.insert({KeysymToKeycode(Pair.first), Pair.second});
+    }
+    Runtime.Keybinds.clear();
+    for (const auto& Pair : TempKeybinds) {
+        Runtime.Keybinds.insert(Pair);
     }
 
     for (auto Setting: Runtime.Monitors) {
