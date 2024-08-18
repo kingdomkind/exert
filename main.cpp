@@ -582,6 +582,7 @@ void MoveActiveWindow() {
 }
 
 void ResizeActiveWindow(WindowSegment Direction) {
+    std::cout << "Called!" << std::endl;
     Split TargetSplit;
     if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }    
     if (WM.FocusedContainer != nullptr) {

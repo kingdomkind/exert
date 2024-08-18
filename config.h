@@ -49,6 +49,7 @@ static Runtime Runtime = {
 
     // * EXPORTS
     {
+        {"XDG_CURRENT_DESKTOP", "Exert"},
         {"XCURSOR_SIZE", "24"},
         {"GTK_THEME", "Adwaita:dark"},
     },
@@ -57,7 +58,7 @@ static Runtime Runtime = {
     {
         "dunst",
         "flameshot",
-        "picom",
+        "picom -b --experimental-backends",
         "/home/pika/Config/scripts/wallpaper/change-wallpaper.sh",
         "xset -dpms && xset s off",
     }
