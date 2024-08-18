@@ -762,7 +762,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
     {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
-    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
+    {"ResizeActiveWindow", [](const std::string &Arguments) { std::cout << "Called1!" <<std::endl; if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
     {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWindow(); }},
     {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments){ ChangeActiveWindowSplitDirection(); }},
     {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
