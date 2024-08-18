@@ -6,6 +6,9 @@
 ███████╗██╔╝ ██╗███████╗██║  ██║   ██║   
 ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   ╚═╝
 ```
+
+[Showcase](https://www.youtube.com/watch?v=hvi9hG-ufws)
+
 **<============ Precursor ============>**
 
 Exert is my own X11, no-frills (XCB) window manager. All the code is in 1 file, main.cpp and i've annotated it where needs be! (There is shared.h, but that just contains the structs that define the config file)
