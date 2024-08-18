@@ -109,7 +109,7 @@ struct WM {
     Protocols ProtocolsContainer; // The previously mentioned protocols
 };
 
-const uint32_t OFFSCREEN_WINDOW_POSITION[] = {10000, 10000}; // The position of windows (x,y) which are offscreen (ie. their workspace is not active)
+const float OFFSCREEN_WINDOW_MULTIPLIER = 1.5;
 const float RESIZE_INCREMEMNT = 0.01;
 
 static WM WM;
@@ -648,7 +648,9 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
 
             if (CurrentContainer->Direction == NONE) {
                 if (PreviousMonitor == nullptr) { // We are not stealing the workspace from another monitor, so set window positions elsewhere
-                    xcb_configure_window(WM.Connection, CurrentContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &OFFSCREEN_WINDOW_POSITION);
+                    xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, CurrentContainer->Value->Window), NULL);
+                    const uint32_t POS_TO_MOVE[] = {static_cast<uint32_t>(WindowGeometry->x), static_cast<uint32_t>(static_cast<uint32_t>(WindowGeometry->y) + (GetActiveMonitor()->Height * OFFSCREEN_WINDOW_MULTIPLIER))};
+                    xcb_configure_window(WM.Connection, CurrentContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &POS_TO_MOVE);
                     xcb_flush(WM.Connection);
                 } else { // We are stealing the workspace from another monitor, so update splits since the other monitor has the old workspace now
                     UpdateWindowToCurrentSplits(CurrentContainer);
