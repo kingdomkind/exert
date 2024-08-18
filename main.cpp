@@ -911,6 +911,8 @@ int main() {
         return EXIT_FAILURE;
     }
     std::cout << "Initialised the key symbols" << std::endl;
+
+    // Convert the keysymbols to their keycodes
     std::multimap<unsigned int, struct Keybind> TempKeybinds;
     for (const auto& Pair : Runtime.Keybinds) {
         TempKeybinds.insert({KeysymToKeycode(Pair.first), Pair.second});
