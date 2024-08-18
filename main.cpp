@@ -762,7 +762,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
     {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
     {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
-    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else {ResizeActiveWindow(DOWN); }}},
+    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
     {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWindow(); }},
     {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments){ ChangeActiveWindowSplitDirection(); }},
     {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
@@ -808,6 +808,9 @@ void StartupWM() {
     for (const auto &Pair : Runtime.Keybinds) {
         xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, KeysymToKeycode(Pair.first), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
+
+    xcb_grab_key(WM.Connection, 0, WM.Screen->root, XCB_MOD_MASK_4, KeysymToKeycode(XK_Right), XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
 
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
