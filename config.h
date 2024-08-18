@@ -8,7 +8,7 @@ static Runtime Runtime = {
         {XK_m, {XCB_MOD_MASK_4, "exert-command ExitWM"}},
         {XK_c, {XCB_MOD_MASK_4, "exert-command KillActive"}},
         {XK_f, {XCB_MOD_MASK_4, "exert-command ToggleFullscreen"}},
-        {XK_x, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}},
+        {XK_Left, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}},
         {XK_Right, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}},
         {XK_Up, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}},
         {XK_Down, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}},
