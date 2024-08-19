@@ -12,7 +12,7 @@ struct Keybind {
     std::string Command;
 };
 
-struct Settings {
+struct WMSettings {
     float MonitorPadding = 0; // Size of padding in pixels between monitor edges and windows
     float WindowPadding = 0; // Size of padding in pixels between windows
     float BorderSize = 0; // Size of borders in pixels on windows
@@ -24,7 +24,7 @@ struct Settings {
 
 /* Stuff we configure */
 struct Runtime {
-    Settings Settings; // Settings for WM
+    WMSettings Settings; // Settings for WM
     std::multimap<unsigned int, struct Keybind> Keybinds; // Key is the letter / number / whatever associated with the keybind
     std::unordered_set<std::string> Monitors; // Settings for monitors
     std::multimap<std::string, std::string> Exports; // Environment Variables
