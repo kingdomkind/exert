@@ -566,6 +566,22 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 }
 
 // ! COMMANDS
+void ToggleActiveWindowFloating() {
+    if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
+        WM.FocusedContainer->Value->Floating = true;
+        std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
+        int Workspace = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
+        RemoveContainerFromWM(WM.FocusedContainer, Workspace);
+        RemovalContainer->Parent = nullptr;
+        RemovalContainer->Left = nullptr;
+        RemovalContainer->Right = nullptr;
+        RemovalContainer->Value->Position = {0.25f, 0.25f};
+        RemovalContainer->Value->Size = {0.5f, 0.5f};
+        WM.Workspaces[Workspace]->FloatingContainers.insert(RemovalContainer);
+        UpdateWindowToCurrentSplits(RemovalContainer);
+    }
+}
+
 void ChangeActiveWindowSplitDirection() {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) { return; } 
