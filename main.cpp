@@ -316,7 +316,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
                 }
             }
         } else { // Window is floating
-            X *= TargetContainer->Value->Position.X; Y *= TargetContainer->Value->Position.Y; Width *= TargetContainer->Value->Size.X; Height *= TargetContainer->Value->Size.Y;
+            X += (Width * TargetContainer->Value->Position.X); Y += (Height * TargetContainer->Value->Position.Y); Width *= TargetContainer->Value->Size.X; Height *= TargetContainer->Value->Size.Y;
         }
         std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
     } else {
