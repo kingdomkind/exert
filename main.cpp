@@ -568,6 +568,7 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 // ! COMMANDS
 void ChangeActiveWindowSplitDirection() {
     if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Value->Floating == true) { return; } 
         if (WM.FocusedContainer->Parent != nullptr) {
             if (WM.FocusedContainer->Parent->Direction == VERTICAL) {
                 WM.FocusedContainer->Parent->Direction = HORIZONTAL;
@@ -581,6 +582,7 @@ void ChangeActiveWindowSplitDirection() {
 
 void SwapActiveWindowSides() {
     if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Value->Floating == true) { return; } 
         if (WM.FocusedContainer->Parent != nullptr) {
             if (WM.FocusedContainer->Parent->Left == WM.FocusedContainer) {
                 WM.FocusedContainer->Parent->Left = WM.FocusedContainer->Parent->Right;
@@ -611,20 +613,30 @@ void MoveActiveWindow() {
 
 void ResizeActiveWindow(WindowSegment Direction) {
     std::cout << "Called!" << std::endl;
-    Split TargetSplit;
-    if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }    
+
     if (WM.FocusedContainer != nullptr) {
-        std::shared_ptr<Container>* TargetContainer = &WM.FocusedContainer;
-        while (TargetContainer->get()->Parent != nullptr) {
-            TargetContainer = &TargetContainer->get()->Parent;
-            if (TargetContainer->get()->Direction == TargetSplit) {
-                if (Direction == RIGHT || Direction == DOWN) {
-                    TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
-                } else {
-                    TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+        if (WM.FocusedContainer->Value->Floating == true) { // Floating Logic
+            switch (Direction) {
+                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X - RESIZE_INCREMEMNT, 0.0f, 1.0f); }
+                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X + RESIZE_INCREMEMNT, 0.0f, 1.0f); }
+                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); }
+                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); }
+            }
+        } else { // Tiling Logic
+            Split TargetSplit;
+            if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }    
+            std::shared_ptr<Container>* TargetContainer = &WM.FocusedContainer;
+            while (TargetContainer->get()->Parent != nullptr) {
+                TargetContainer = &TargetContainer->get()->Parent;
+                if (TargetContainer->get()->Direction == TargetSplit) {
+                    if (Direction == RIGHT || Direction == DOWN) {
+                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio + RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                    } else {
+                        TargetContainer->get()->Ratio = std::clamp(TargetContainer->get()->Ratio - RESIZE_INCREMEMNT, 0.05f, 0.95f);
+                    }
+                    UpdateWindowSplitsRecursively(*TargetContainer);
+                    break;
                 }
-                UpdateWindowSplitsRecursively(*TargetContainer);
-                break;
             }
         }
     } 
