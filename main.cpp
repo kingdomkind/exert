@@ -504,8 +504,13 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
 
     if (ToBeRemoved->Value->Floating == true) { // Floating Logic
         WM.Workspaces[Workspace]->FloatingContainers.erase(ToBeRemoved);
+        xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour); // Incase the window is planned to be remapped later
+        xcb_flush(WM.Connection);
 
     } else { // Tiling logic
+        xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveTiledWindowBorderColour);
+        xcb_flush(WM.Connection);
+
         if (!(ToBeRemoved->Parent == nullptr)) {
             std::shared_ptr<Container> PromotionContainer; // We choose the other window to be promoted
             if (ToBeRemoved->Parent->Left == ToBeRemoved) {
