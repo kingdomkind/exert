@@ -622,6 +622,7 @@ void ResizeActiveWindow(WindowSegment Direction) {
                 case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); }
                 case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); }
             }
+            UpdateWindowToCurrentSplits(WM.FocusedContainer);
         } else { // Tiling Logic
             Split TargetSplit;
             if (Direction == LEFT || Direction == RIGHT) { TargetSplit = VERTICAL; } else { TargetSplit = HORIZONTAL; }    
