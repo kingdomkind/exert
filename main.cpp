@@ -490,36 +490,41 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
         std::cout << "Fullscreened Container was deleted, setting to nullptr" << std::endl;    
     }
 
-    if (!(ToBeRemoved->Parent == nullptr)) {
-        std::shared_ptr<Container> PromotionContainer; // We choose the other window to be promoted
-        if (ToBeRemoved->Parent->Left == ToBeRemoved) {
-            PromotionContainer = ToBeRemoved->Parent->Right;
-        } else {
-            PromotionContainer = ToBeRemoved->Parent->Left;
-        }
+    if (ToBeRemoved->Value->Floating == true) { // Floating Logic
+        WM.Workspaces[Workspace]->FloatingContainers.erase(ToBeRemoved);
 
-        if (ToBeRemoved->Parent->Parent != nullptr) { // Swapping the parent container to be the promotion container
-            if (ToBeRemoved->Parent->Parent->Left == ToBeRemoved->Parent ) {
-                ToBeRemoved->Parent->Parent->Left = PromotionContainer;
+    } else { // Tiling logic
+        if (!(ToBeRemoved->Parent == nullptr)) {
+            std::shared_ptr<Container> PromotionContainer; // We choose the other window to be promoted
+            if (ToBeRemoved->Parent->Left == ToBeRemoved) {
+                PromotionContainer = ToBeRemoved->Parent->Right;
             } else {
-                ToBeRemoved->Parent->Parent->Right = PromotionContainer;
+                PromotionContainer = ToBeRemoved->Parent->Left;
             }
-            PromotionContainer->Parent = ToBeRemoved->Parent->Parent;
-        } else { // Do the same thing, but no need to modify the parent's parent, as the parent of promotion container is already the root container
-            ToBeRemoved->Parent = PromotionContainer;
-            WM.Workspaces[Workspace]->RootContainer = PromotionContainer;
-            PromotionContainer->Parent = nullptr;
+
+            if (ToBeRemoved->Parent->Parent != nullptr) { // Swapping the parent container to be the promotion container
+                if (ToBeRemoved->Parent->Parent->Left == ToBeRemoved->Parent ) {
+                    ToBeRemoved->Parent->Parent->Left = PromotionContainer;
+                } else {
+                    ToBeRemoved->Parent->Parent->Right = PromotionContainer;
+                }
+                PromotionContainer->Parent = ToBeRemoved->Parent->Parent;
+            } else { // Do the same thing, but no need to modify the parent's parent, as the parent of promotion container is already the root container
+                ToBeRemoved->Parent = PromotionContainer;
+                WM.Workspaces[Workspace]->RootContainer = PromotionContainer;
+                PromotionContainer->Parent = nullptr;
+            }
+
+            std::cout << "After reconfigurement" << std::endl;
+            PrintVisibleWindows();
+
+            // Update the splits for all affected windows
+            UpdateWindowSplitsRecursively(PromotionContainer);
+
+        } else {
+            WM.Workspaces[Workspace]->RootContainer = nullptr;
+            std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
         }
-
-        std::cout << "After reconfigurement" << std::endl;
-        PrintVisibleWindows();
-
-	    // Update the splits for all affected windows
-        UpdateWindowSplitsRecursively(PromotionContainer);
-
-    } else {
-        WM.Workspaces[Workspace]->RootContainer = nullptr;
-        std::cout << "Root container was deleted, setting to nullptr" << std::endl;    
     }
 }
 
