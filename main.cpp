@@ -695,10 +695,11 @@ void ExitWM() {
 }
 
 void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor> TargetMonitor) {
+    std::cout << "Started swapping workspaces" << std::endl;
     unsigned int PreviousWorkspace = GetActiveWorkspaceEnsureValid(TargetMonitor);
     std::shared_ptr<Monitor> PreviousMonitor = GetMonitorFromWorkspace_PossibleNullptr(TargetWorkspace);
 
-    if (PreviousMonitor != nullptr) {
+    if (PreviousMonitor != nullptr) { // The target workspace is on another monitor, we're robbing it from them
         TargetMonitor->ActiveWorkspace = -1;
         PreviousMonitor->ActiveWorkspace = PreviousWorkspace;
         std::cout << "Swapping workspaces, set Previous monitor from workspace " << TargetMonitor << " to workspace " << PreviousWorkspace << std::endl;
