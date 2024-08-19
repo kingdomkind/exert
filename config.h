@@ -8,10 +8,10 @@ static Runtime Runtime = {
         0, // MonitorPadding
         0, // WindowPadding
         0, // BorderSize
-        0xFF0000, // ActiveTiledWindowBorderColour
-        0x0000FF, // InActiveTiledWindowBorderColour
-        0xFF0000, // ActiveFloatingWindowBorderColour
-        0x0000FF, //InActiveFloatingWindowBorderColour
+        0x0000ff, // ActiveTiledWindowBorderColour
+        0xff0000, // InActiveTiledWindowBorderColour
+        0x0000ff, // ActiveFloatingWindowBorderColour
+        0xff0000, //InActiveFloatingWindowBorderColour
     },
 
     // * KEYBINDS
