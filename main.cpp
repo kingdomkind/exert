@@ -281,9 +281,46 @@ unsigned int GetActiveWorkspaceEnsureValid(std::shared_ptr<Monitor> MonitorToChe
     }
 }
 
+Coordinate GetCursorPosition() {
+    xcb_query_pointer_reply_t* Position = xcb_query_pointer_reply(WM.Connection, xcb_query_pointer(WM.Connection, WM.Screen->root), nullptr);
+    if (Position) {
+        Coordinate CursorPosition = {};
+        CursorPosition.X = Position->root_x;
+        CursorPosition.Y = Position->root_y;
+        free(Position);
+        return CursorPosition;
+    } else {
+        std::cerr << "Failed to get the cursor position! [EXIT]" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+std::shared_ptr<Monitor> GetActiveMonitor() {
+    Coordinate CursorPosition = GetCursorPosition();
+    for (std::shared_ptr<Monitor> Monitor: WM.Monitors) {
+        int UpperBoundX = Monitor->Width + Monitor->X;
+        int UpperBoundY = Monitor->Height + Monitor->Y;
+        if ((Monitor->X <= CursorPosition.X) && (CursorPosition.X <= UpperBoundX) && (Monitor->Y <= CursorPosition.Y) && (CursorPosition.Y <= UpperBoundY)) {
+            std::cout << "Returning Active Monitor is: " << Monitor->Name << std::endl;
+            return Monitor;
+        }
+    }
+
+    std::cout << "No Active Monitor was found somehow! [EXIT]" << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::cout << "Updating to current splits: " << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
     std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(TargetContainer->Value->Window)->Workspace);
+
+    if (Monitor == nullptr) { // Workspace is off screen
+        xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, TargetContainer->Value->Window), NULL);
+        const uint32_t POS_TO_MOVE[] = {static_cast<uint32_t>(WindowGeometry->x), static_cast<uint32_t>(static_cast<uint32_t>(WindowGeometry->y) + (GetActiveMonitor()->Height * OFFSCREEN_WINDOW_MULTIPLIER))};
+        xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &POS_TO_MOVE);
+        xcb_flush(WM.Connection);
+        return;
+    }
 
     if (TargetContainer->Value == nullptr) {
         std::cerr << "Target container has no value -- cannot proceed in positioning and sizing it! [EXIT]" << std::endl;
@@ -327,35 +364,6 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
     xcb_flush(WM.Connection);
     std::cout << "Updated Window " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
-}
-
-Coordinate GetCursorPosition() {
-    xcb_query_pointer_reply_t* Position = xcb_query_pointer_reply(WM.Connection, xcb_query_pointer(WM.Connection, WM.Screen->root), nullptr);
-    if (Position) {
-        Coordinate CursorPosition = {};
-        CursorPosition.X = Position->root_x;
-        CursorPosition.Y = Position->root_y;
-        free(Position);
-        return CursorPosition;
-    } else {
-        std::cerr << "Failed to get the cursor position! [EXIT]" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-}
-
-std::shared_ptr<Monitor> GetActiveMonitor() {
-    Coordinate CursorPosition = GetCursorPosition();
-    for (std::shared_ptr<Monitor> Monitor: WM.Monitors) {
-        int UpperBoundX = Monitor->Width + Monitor->X;
-        int UpperBoundY = Monitor->Height + Monitor->Y;
-        if ((Monitor->X <= CursorPosition.X) && (CursorPosition.X <= UpperBoundX) && (Monitor->Y <= CursorPosition.Y) && (CursorPosition.Y <= UpperBoundY)) {
-            std::cout << "Returning Active Monitor is: " << Monitor->Name << std::endl;
-            return Monitor;
-        }
-    }
-
-    std::cout << "No Active Monitor was found somehow! [EXIT]" << std::endl;
-    exit(EXIT_FAILURE);
 }
 
 WindowSegment GetWindowSegmentCursorIsIn(xcb_window_t Window) {
@@ -694,50 +702,20 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
         PreviousMonitor->ActiveWorkspace = PreviousWorkspace;
         std::cout << "Swapping workspaces, set Previous monitor from workspace " << TargetMonitor << " to workspace " << PreviousWorkspace << std::endl;
     }
-
+    
     if (!(WM.Workspaces[PreviousWorkspace]->RootContainer == nullptr)) {
-        std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(WM.Workspaces[PreviousWorkspace]->RootContainer);
-
-        while (!Stack.empty()) {
-            std::shared_ptr<Container> CurrentContainer = Stack.top();
-            Stack.pop();
-
-            if (CurrentContainer->Direction == NONE) {
-                if (PreviousMonitor == nullptr) { // We are not stealing the workspace from another monitor, so set window positions elsewhere
-                    xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, CurrentContainer->Value->Window), NULL);
-                    const uint32_t POS_TO_MOVE[] = {static_cast<uint32_t>(WindowGeometry->x), static_cast<uint32_t>(static_cast<uint32_t>(WindowGeometry->y) + (GetActiveMonitor()->Height * OFFSCREEN_WINDOW_MULTIPLIER))};
-                    xcb_configure_window(WM.Connection, CurrentContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &POS_TO_MOVE);
-                    xcb_flush(WM.Connection);
-                } else { // We are stealing the workspace from another monitor, so update splits since the other monitor has the old workspace now
-                    UpdateWindowToCurrentSplits(CurrentContainer);
-                }
-            } else {
-                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
-                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
-            }
-        }
+        UpdateWindowSplitsRecursively(WM.Workspaces[PreviousWorkspace]->RootContainer);
+    }
+    for (auto FloatingContainer: WM.Workspaces[PreviousWorkspace]->FloatingContainers) {
+        UpdateWindowToCurrentSplits(FloatingContainer);
     }
     std::cout << "Moved previous workspace " << PreviousWorkspace << std::endl;
 
-    // Now we can set the target workspace to the target monitor
-    EnsureValidWorkspacesBetweenIndicesInclusive(WM.Workspaces.size(), TargetWorkspace); // Incase we swap to a workspace that doesn't yet exist    
-    TargetMonitor->ActiveWorkspace = TargetWorkspace;
     if (!(WM.Workspaces[TargetWorkspace]->RootContainer == nullptr)) {
-        std::stack<std::shared_ptr<Container>> Stack;
-        Stack.push(WM.Workspaces[TargetWorkspace]->RootContainer);
-
-        while (!Stack.empty()) {
-            std::shared_ptr<Container> CurrentContainer = Stack.top();
-            Stack.pop();
-
-            if (CurrentContainer->Direction == NONE) {
-                UpdateWindowToCurrentSplits(CurrentContainer);
-            } else {
-                if (CurrentContainer->Right != nullptr) { Stack.push(CurrentContainer->Right); }
-                if (CurrentContainer->Left != nullptr) { Stack.push(CurrentContainer->Left); }
-            }
-        }
+        UpdateWindowSplitsRecursively(WM.Workspaces[TargetWorkspace]->RootContainer);
+    }
+    for (auto FloatingContainer: WM.Workspaces[TargetWorkspace]->FloatingContainers) {
+        UpdateWindowToCurrentSplits(FloatingContainer);
     }
     std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
 }
