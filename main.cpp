@@ -422,6 +422,7 @@ void MapWindowToWM(unsigned int WindowToMap) {
                     ActiveWorkspace->FloatingContainers.insert(NewContainer);
                     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
                     xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
+                    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
                     UpdateWindowToCurrentSplits(NewContainer);
                     xcb_map_window(WM.Connection, WindowToMap);
                     xcb_flush(WM.Connection);
@@ -478,6 +479,7 @@ void MapWindowToWM(unsigned int WindowToMap) {
 
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
+    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveTiledWindowBorderColour);
     UpdateWindowToCurrentSplits(NewContainer);
     if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); SendWindowToFront(WM.FocusedContainer->Value->Window); } // We map the fullscreened window after so it appears ontop
     std::cout << "ADDED! " << WindowToMap << std::endl;
@@ -748,11 +750,22 @@ void ToggleFullscreen() {
 // ! EVENT LOOP FUNCTIONS
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
-
     if (Event->event != 0) {
+        if (WM.FocusedContainer != nullptr) {
+            if (WM.FocusedContainer->Value->Floating == true) {
+                xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
+            } else {
+                xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveTiledWindowBorderColour);
+            }
+        }
         std::cout << "Setting window focus to: " << Event->event << std::endl;
         xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
         WM.FocusedContainer = GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->event)->Container;
+        if (WM.FocusedContainer->Value->Floating == true) {
+            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.ActiveFloatingWindowBorderColour);
+        } else {
+            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.ActiveTiledWindowBorderColour);
+        }
         xcb_flush(WM.Connection);
     } else {
         std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
