@@ -5,7 +5,7 @@ static Runtime Runtime = {
     
     //* Settings
     {
-        20, // MonitorPadding
+        200, // MonitorPadding
         10, // WindowPadding
         0, // TiledWindowBorderSize
         3, // FloatingWindowBorderSize
