@@ -315,6 +315,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(TargetContainer->Value->Window)->Workspace);
 
     if (Monitor == nullptr) { // Workspace is off screen
+        std::cout << "Monitor is nullptr, and so is offscreen" << std::endl;
         xcb_get_geometry_reply_t* WindowGeometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, TargetContainer->Value->Window), NULL);
         const uint32_t POS_TO_MOVE[] = {static_cast<uint32_t>(WindowGeometry->x), static_cast<uint32_t>(static_cast<uint32_t>(WindowGeometry->y) + (GetActiveMonitor()->Height * OFFSCREEN_WINDOW_MULTIPLIER))};
         xcb_configure_window(WM.Connection, TargetContainer->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &POS_TO_MOVE);
