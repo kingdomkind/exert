@@ -617,10 +617,10 @@ void ResizeActiveWindow(WindowSegment Direction) {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) { // Floating Logic
             switch (Direction) {
-                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X - RESIZE_INCREMEMNT, 0.0f, 1.0f); }
-                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X + RESIZE_INCREMEMNT, 0.0f, 1.0f); }
-                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); }
-                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); }
+                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
             }
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
         } else { // Tiling Logic
