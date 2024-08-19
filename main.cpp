@@ -703,7 +703,7 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
         std::cout << "Swapping workspaces, set Previous monitor from workspace " << TargetMonitor << " to workspace " << PreviousWorkspace << std::endl;
     }
     
-    if (!(WM.Workspaces[PreviousWorkspace]->RootContainer == nullptr)) {
+    if (WM.Workspaces[PreviousWorkspace]->RootContainer != nullptr) {
         UpdateWindowSplitsRecursively(WM.Workspaces[PreviousWorkspace]->RootContainer);
     }
     for (auto FloatingContainer: WM.Workspaces[PreviousWorkspace]->FloatingContainers) {
@@ -711,12 +711,15 @@ void SetWorkspaceToMonitor(unsigned int TargetWorkspace, std::shared_ptr<Monitor
     }
     std::cout << "Moved previous workspace " << PreviousWorkspace << std::endl;
 
-    if (!(WM.Workspaces[TargetWorkspace]->RootContainer == nullptr)) {
+    EnsureValidWorkspacesBetweenIndicesInclusive(WM.Workspaces.size(), TargetWorkspace); // Incase we swap to a workspace that doesn't yet exist    
+    TargetMonitor->ActiveWorkspace = TargetWorkspace;
+    if (WM.Workspaces[TargetWorkspace]->RootContainer != nullptr) {
         UpdateWindowSplitsRecursively(WM.Workspaces[TargetWorkspace]->RootContainer);
     }
     for (auto FloatingContainer: WM.Workspaces[TargetWorkspace]->FloatingContainers) {
         UpdateWindowToCurrentSplits(FloatingContainer);
     }
+
     std::cout << "Set Monitor: " << TargetMonitor << ", to workspace: " << TargetMonitor->ActiveWorkspace << " (should be the same as " << TargetWorkspace << ")" << std::endl;
 }
 
