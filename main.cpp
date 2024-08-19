@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
@@ -52,6 +53,11 @@ struct WindowMetadata {
 /* The struct associated with each window we manage */
 struct Window {
     xcb_window_t Window;
+    
+    // Only if the window is floating (not tiled)
+    bool Floating = false;
+    Coordinate Position; // scale of 0 to 1
+    Coordinate Size; // Width, Height, scale of 0 to 1
 };
 
 /* Each window struct has an associated Container. This is because we have a tree structure of containers, that define how windows should be split and positioned
@@ -71,6 +77,7 @@ struct Container {
 /* The struct that defines each workspace. Each workspace has a root container, which represents the root node of the heirarchy tree */
 struct Workspace {
     std::shared_ptr<Container> RootContainer = nullptr;
+    std::unordered_set<std::shared_ptr<Container>> FloatingContainers;
     std::shared_ptr<Container> FullscreenContainer = nullptr; // If there is a window that is fullscreened on the workspace
 };
 
@@ -213,6 +220,14 @@ std::shared_ptr<WindowMetadata> GetWorkspaceAndContainerFromWindow_PossibleNullp
                 }
             }
         }
+
+        for (auto CurrentContainer: Workspace->FloatingContainers) {
+            if (CurrentContainer->Value->Window == Window) {
+                Metadata->Container = CurrentContainer;
+                Metadata->Workspace = i;
+                return Metadata;
+            }
+        }
     }
     std::cerr << "Could not find the specified container for window: " << Window << ", note that this may be because we do not manage this client" << std::endl;
     return nullptr;
@@ -280,26 +295,30 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
 
     // Ensure that the window isn't fullscreened
     if (WM.Workspaces[GetActiveWorkspaceEnsureValid(Monitor)]->FullscreenContainer != TargetContainer) {
-        std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
-        std::stack<std::shared_ptr<Container>> Stack;
-        while (true) {
-            Stack.push(*CurrentContainer);
-            std::cout << "Pushed " << CurrentContainer->get() << " onto the stack" << std::endl;
-            if (CurrentContainer->get()->Parent == nullptr) { break; }
-            CurrentContainer = &CurrentContainer->get()->Parent;
-        }
-
-        while (Stack.size() > 1) { // Don't iterate over the base container
-            std::shared_ptr<Container> TopContainer = Stack.top();
-            Stack.pop();
-
-            if (TopContainer->Direction == VERTICAL) {
-                if (TopContainer->Right == Stack.top()) { X += Width * (TopContainer->Ratio); Width *= (1-TopContainer->Ratio); } else { Width *= (TopContainer->Ratio); }
-            } else {
-                if (TopContainer->Right == Stack.top()) { Y += Height * (TopContainer->Ratio); Height *= (1-TopContainer->Ratio); } else { Height *= (TopContainer->Ratio); }
+        if (TargetContainer->Value->Floating != true) { 
+            std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
+            std::stack<std::shared_ptr<Container>> Stack;
+            while (true) {
+                Stack.push(*CurrentContainer);
+                std::cout << "Pushed " << CurrentContainer->get() << " onto the stack" << std::endl;
+                if (CurrentContainer->get()->Parent == nullptr) { break; }
+                CurrentContainer = &CurrentContainer->get()->Parent;
             }
-            std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
+
+            while (Stack.size() > 1) { // Don't iterate over the base container
+                std::shared_ptr<Container> TopContainer = Stack.top();
+                Stack.pop();
+
+                if (TopContainer->Direction == VERTICAL) {
+                    if (TopContainer->Right == Stack.top()) { X += Width * (TopContainer->Ratio); Width *= (1-TopContainer->Ratio); } else { Width *= (TopContainer->Ratio); }
+                } else {
+                    if (TopContainer->Right == Stack.top()) { Y += Height * (TopContainer->Ratio); Height *= (1-TopContainer->Ratio); } else { Height *= (TopContainer->Ratio); }
+                }
+            }
+        } else { // Window is floating
+            X *= TargetContainer->Value->Position.X; Y *= TargetContainer->Value->Position.Y; Width *= TargetContainer->Value->Size.X; Height *= TargetContainer->Value->Size.Y;
         }
+        std::cout << "Iter " << TargetContainer->Value->Window << " to current splits, PosX: " << X << ", PosY: " << Y << ", Width: " << Width << ", Height: " << Height << std::endl;
     } else {
         std::cout << "Setting fullscreened window to max res" << std::endl;
     }
@@ -372,6 +391,14 @@ void UpdateWindowSplitsRecursively(std::shared_ptr<Container> BaseContainer) {
 }
 
 void MapWindowToWM(unsigned int WindowToMap) {
+    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
+    NewWindow->Window = WindowToMap;
+    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
+    NewContainer->Direction = NONE;
+    NewContainer->Parent = nullptr;
+    NewContainer->Value = NewWindow;
+    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
+
     // Check if window is a popup or similar, if so map it to the center of the current monitor
     xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, WindowToMap, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
     if (WindowTypeReply) {
@@ -380,9 +407,13 @@ void MapWindowToWM(unsigned int WindowToMap) {
             for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
                 if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
                     std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << WindowToMap << std::endl;
-                    auto CurrentMonitor = GetActiveMonitor();
-                    uint32_t Parameters[] = {static_cast<uint32_t>(CurrentMonitor->X+CurrentMonitor->Width/4), static_cast<uint32_t>(CurrentMonitor->Y+CurrentMonitor->Height/4), static_cast<uint32_t>(CurrentMonitor->Width/2), static_cast<uint32_t>(CurrentMonitor->Height/2)};
-                    xcb_configure_window(WM.Connection, WindowToMap, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, Parameters);
+                    NewWindow->Floating = true;
+                    NewWindow->Position = {0.25f, 0.25f};
+                    NewWindow->Size = {0.5f, 0.5f};
+                    ActiveWorkspace->FloatingContainers.insert(NewContainer);
+                    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+                    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
+                    UpdateWindowToCurrentSplits(NewContainer);
                     xcb_map_window(WM.Connection, WindowToMap);
                     xcb_flush(WM.Connection);
                     return;
@@ -391,14 +422,6 @@ void MapWindowToWM(unsigned int WindowToMap) {
         }
     }
 
-    std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
-    NewWindow->Window = WindowToMap;
-    std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
-    NewContainer->Direction = NONE;
-    NewContainer->Parent = nullptr;
-    NewContainer->Value = NewWindow;
-
-    std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
     bool FullscreenRefreshNeeded = false;
 
     if (ActiveWorkspace->RootContainer != nullptr) { // Need to create a split, this isn't the first window opened
