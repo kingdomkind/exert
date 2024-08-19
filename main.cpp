@@ -568,13 +568,13 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 // ! COMMANDS
 void ToggleActiveWindowFloating() {
     if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
-        WM.FocusedContainer->Value->Floating = true;
         std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
         int Workspace = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
         RemoveContainerFromWM(WM.FocusedContainer, Workspace);
         RemovalContainer->Parent = nullptr;
         RemovalContainer->Left = nullptr;
         RemovalContainer->Right = nullptr;
+        RemovalContainer->Value->Floating = true;
         RemovalContainer->Value->Position = {0.25f, 0.25f};
         RemovalContainer->Value->Size = {0.5f, 0.5f};
         WM.Workspaces[Workspace]->FloatingContainers.insert(RemovalContainer);
@@ -628,7 +628,7 @@ void MoveActiveWindow() {
 }
 
 void ResizeActiveWindow(WindowSegment Direction) {
-    std::cout << "Called!" << std::endl;
+    std::cout << "Resizing Active window!" << std::endl;
 
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) { // Floating Logic
@@ -749,11 +749,8 @@ void ToggleFullscreen() {
         if (TargetWorkspace->FullscreenContainer != nullptr) { // Untoggle fullscreen window
             std::cout << "Untoggling fullscreen for Workspace: " << WorkspaceInt << std::endl;
             auto TargetContainer = TargetWorkspace->FullscreenContainer;
-            std::cout << "Crash1" << std::endl;
             TargetWorkspace->FullscreenContainer = nullptr;
-            std::cout << "Crash2: " << TargetContainer << std::endl;
             UpdateWindowToCurrentSplits(TargetContainer);
-            std::cout << "Crash3" << std::endl;
         } else { // Fullscreen the focused window
             std::cout << "Toggling fullscreen for Window: " << WM.FocusedContainer->Value->Window << std::endl;
             TargetWorkspace->FullscreenContainer = WM.FocusedContainer;
