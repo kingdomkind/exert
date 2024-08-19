@@ -329,7 +329,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     }
 
     uint32_t X, Y, Width, Height;
-    X = Monitor->X; Y = Monitor->Y; Width = Monitor->Width; Height = Monitor->Height;
+    X = Monitor->X+Runtime.Settings.MonitorPadding; Y = Monitor->Y+Runtime.Settings.MonitorPadding; Width = Monitor->Width-Runtime.Settings.MonitorPadding; Height = Monitor->Height-Runtime.Settings.MonitorPadding;
 
     // Ensure that the window isn't fullscreened
     if (WM.Workspaces[GetActiveWorkspaceEnsureValid(Monitor)]->FullscreenContainer != TargetContainer) {
