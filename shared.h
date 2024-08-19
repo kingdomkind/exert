@@ -15,7 +15,8 @@ struct Keybind {
 struct WMSettings {
     float MonitorPadding = 0; // Size of padding in pixels between monitor edges and windows
     float WindowPadding = 0; // Size of padding in pixels between windows
-    float BorderSize = 0; // Size of borders in pixels on windows
+    float TiledWindowBorderSize = 3; // Size of borders in pixels on tiled windows
+    float FloatingWindowBorderSize = 3; // Size of borders in pixels on floating windows
     int32_t ActiveTiledWindowBorderColour = -1; // Set to -1 to disable, otherwise set to colour
     int32_t InActiveTiledWindowBorderColour = -1;
     int32_t ActiveFloatingWindowBorderColour = -1;

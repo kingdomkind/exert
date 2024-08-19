@@ -7,7 +7,8 @@ static Runtime Runtime = {
     {
         0, // MonitorPadding
         0, // WindowPadding
-        0, // BorderSize
+        3, // TiledWindowBorderSize
+        3, // FloatingWindowBorderSize
         0x0000ff, // ActiveTiledWindowBorderColour
         0xff0000, // InActiveTiledWindowBorderColour
         0x0000ff, // ActiveFloatingWindowBorderColour
