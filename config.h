@@ -15,6 +15,8 @@ static Runtime Runtime = {
         {XK_x, {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}},
         {XK_l, {XCB_MOD_MASK_4, "exert-command ChangeActiveWindowSplitDirection"}},
         {XK_k, {XCB_MOD_MASK_4, "exert-command SwapActiveWindowSides"}},
+        {XK_v, {XCB_MOD_MASK_4, "exert-command ToggleActiveWindowFloating"}},
+
         // Programs
         {XK_space, {XCB_MOD_MASK_4, "rofi -show drun"}},
         {XK_d, {XCB_MOD_MASK_4, "brave"}},

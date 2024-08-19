@@ -825,6 +825,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWindow(); }},
     {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments){ ChangeActiveWindowSplitDirection(); }},
     {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
+    {"ToggleActiveWindowFloating", [](const std::string &Arguments){ ToggleActiveWindowFloating(); }},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
