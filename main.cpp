@@ -335,7 +335,7 @@ void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
     if (WM.Workspaces[GetActiveWorkspaceEnsureValid(Monitor)]->FullscreenContainer != TargetContainer) {
         if (TargetContainer->Value->Floating != true) {
             X += Runtime.Settings.MonitorPadding; Y += Runtime.Settings.MonitorPadding; Width -= (Runtime.Settings.MonitorPadding*2); Height -= (Runtime.Settings.MonitorPadding*2);
-            X -= (Runtime.Settings.WindowPadding/2); Y -= (Runtime.Settings.WindowPadding/2);
+            X -= (Runtime.Settings.WindowPadding/2); Y -= (Runtime.Settings.WindowPadding/2); Width += (Runtime.Settings.WindowPadding); Height += (Runtime.Settings.WindowPadding);
             std::shared_ptr<Container>* CurrentContainer = &TargetContainer;
             std::stack<std::shared_ptr<Container>> Stack;
             while (true) {
