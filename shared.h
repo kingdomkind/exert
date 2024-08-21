@@ -8,7 +8,7 @@
 
 /* The letter is the key, keybind struct is intended to be used in a multimap */
 struct Keybind {
-    xcb_mod_mask_t Modifier;
+    unsigned int Modifier;
     std::string Command;
 };
 

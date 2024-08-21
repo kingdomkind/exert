@@ -411,6 +411,7 @@ void MapWindowToWM(unsigned int WindowToMap) {
     NewContainer->Parent = nullptr;
     NewContainer->Value = NewWindow;
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
+    bool MakeFloating = false;
 
     // Check if window is a popup or similar, if so map it to the center of the current monitor
     xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, WindowToMap, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
@@ -419,21 +420,31 @@ void MapWindowToWM(unsigned int WindowToMap) {
             xcb_atom_t* Types = (xcb_atom_t*)xcb_get_property_value(WindowTypeReply);
             for (int i = 0; i < static_cast<int>(WindowTypeReply->length); i++) {
                 if (Types[i] == WM.ProtocolsContainer.NetWmWindowTypeDialog || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeUtility || Types[i] == WM.ProtocolsContainer.NetWmWindowTypeSplash) {
-                    std::cout << "Window to map is a popup, mapping it to 1/2 the current monitor in all respects. Window: " << WindowToMap << std::endl;
-                    NewWindow->Floating = true;
-                    NewWindow->Position = {0.25f, 0.25f};
-                    NewWindow->Size = {0.5f, 0.5f};
-                    ActiveWorkspace->FloatingContainers.insert(NewContainer);
-                    uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
-                    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
-                    xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
-                    UpdateWindowToCurrentSplits(NewContainer);
-                    xcb_map_window(WM.Connection, WindowToMap);
-                    xcb_flush(WM.Connection);
-                    return;
+                    MakeFloating = true;
                 }
             }
         }
+    }
+
+    if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Value->Floating == true) {
+            MakeFloating = true;
+        }
+    }
+
+    if (MakeFloating == true) {
+        std::cout << "Window to map is floating, mapping it to 1/2 the current monitor in all respects. Window: " << WindowToMap << std::endl;
+        NewWindow->Floating = true;
+        NewWindow->Position = {0.25f, 0.25f};
+        NewWindow->Size = {0.5f, 0.5f};
+        ActiveWorkspace->FloatingContainers.insert(NewContainer);
+        uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
+        xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
+        xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
+        UpdateWindowToCurrentSplits(NewContainer);
+        xcb_map_window(WM.Connection, WindowToMap);
+        xcb_flush(WM.Connection);
+        return;
     }
 
     bool FullscreenRefreshNeeded = false;
@@ -590,10 +601,10 @@ void MoveFloatingWindow(WindowSegment Direction) {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) {
             switch (Direction) {
-                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Position.X - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
-                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Position.X + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
-                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Position.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
-                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Position.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case LEFT: { WM.FocusedContainer->Value->Position.X = std::clamp(WM.FocusedContainer->Value->Position.X - RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Size.X); break; }
+                case RIGHT: { WM.FocusedContainer->Value->Position.X = std::clamp(WM.FocusedContainer->Value->Position.X + RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Size.X); break; }
+                case UP: { WM.FocusedContainer->Value->Position.Y = std::clamp(WM.FocusedContainer->Value->Position.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Size.Y); break; }
+                case DOWN: { WM.FocusedContainer->Value->Position.Y = std::clamp(WM.FocusedContainer->Value->Position.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Size.Y); break; }
             }
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
         }
@@ -667,10 +678,10 @@ void ResizeActiveWindow(WindowSegment Direction) {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) { // Floating Logic
             switch (Direction) {
-                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
-                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
-                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
-                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X - RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Position.X); break; }
+                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Size.X + RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Position.X); break; }
+                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Position.Y); break; }
+                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Size.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f - WM.FocusedContainer->Value->Position.Y); break; }
             }
             UpdateWindowToCurrentSplits(WM.FocusedContainer);
         } else { // Tiling Logic
@@ -849,8 +860,8 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
     xcb_keycode_t Keycode = Event->detail;
     auto TargetRange = Runtime.Keybinds.equal_range(Keycode);
     if (TargetRange.first != TargetRange.second) {
-        for (auto Pair = TargetRange.first; Pair != TargetRange.second; ++Pair) {
-            if ((Event->state & Pair->second.Modifier) && Keycode == Pair->first) {
+        for (auto Pair = TargetRange.first; Pair != TargetRange.second; Pair++) {
+            if (((Event->state & Pair->second.Modifier) == Event->state) && Keycode == Pair->first) {
                 std::string Prefix = "exert-command";
                 std::string Command = Pair->second.Command;
                 if (Command.rfind(Prefix, 0) == 0) {
