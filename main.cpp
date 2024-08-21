@@ -643,6 +643,17 @@ void ToggleActiveWindowFloating() {
         RemovalContainer->Value->Position = {0.25f, 0.25f};
         RemovalContainer->Value->Size = {0.5f, 0.5f};
         WM.Workspaces[Workspace]->FloatingContainers.insert(RemovalContainer);
+        int32_t Val = 1;
+
+        xcb_change_property(WM.Connection,
+                    XCB_PROP_MODE_REPLACE,
+                    RemovalContainer->Value->Window,
+                    GetAtom("FLOATING"),
+                    XCB_ATOM_CARDINAL,  // type of the property (CARDINAL means unsigned integer)
+                    32,  // format (32-bit integer)
+                    1,   // number of items in the data
+                    &Val);  // pointer to the data
+
         if (WM.FocusedContainer == nullptr) { FocusContainer(RemovalContainer); }
         UpdateWindowToCurrentSplits(RemovalContainer);
     }
