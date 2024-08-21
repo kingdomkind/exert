@@ -662,6 +662,7 @@ void ToggleActiveWindowFloating() {
         if (WM.FocusedContainer == nullptr) { FocusContainer(RemovalContainer); }
         UpdateWindowToCurrentSplits(RemovalContainer);*/
         MapWindowToWM(RemovalContainer->Value->Window, true);
+        if (WM.FocusedContainer == nullptr) { FocusContainer(GetWorkspaceAndContainerFromWindow_PossibleNullptr(RemovalContainer->Value->Window)->Container); }
     }
 }
 
