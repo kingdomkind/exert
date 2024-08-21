@@ -623,7 +623,7 @@ void ToggleActiveWindowFloating() {
         RemovalContainer->Value->Position = {0.25f, 0.25f};
         RemovalContainer->Value->Size = {0.5f, 0.5f};
         WM.Workspaces[Workspace]->FloatingContainers.insert(RemovalContainer);
-        if (WM.FocusedContainer == nullptr) { WM.FocusedContainer = RemovalContainer; }
+        if (WM.FocusedContainer == nullptr) { std::cout << "Window moved to floating still focused, set to focused"; WM.FocusedContainer = RemovalContainer; }
         UpdateWindowToCurrentSplits(RemovalContainer);
     }
 }
