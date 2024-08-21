@@ -586,6 +586,20 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
 }
 
 // ! COMMANDS
+void MoveFloatingWindow(WindowSegment Direction) {
+    if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Value->Floating == true) {
+            switch (Direction) {
+                case LEFT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Position.X - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case RIGHT: { WM.FocusedContainer->Value->Size.X = std::clamp(WM.FocusedContainer->Value->Position.X + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case UP: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Position.Y - RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+                case DOWN: { WM.FocusedContainer->Value->Size.Y = std::clamp(WM.FocusedContainer->Value->Position.Y + RESIZE_INCREMEMNT, 0.0f, 1.0f); break; }
+            }
+            UpdateWindowToCurrentSplits(WM.FocusedContainer);
+        }
+    }
+}
+
 void ToggleActiveWindowFloating() {
     if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
         std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
@@ -827,6 +841,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments){ ChangeActiveWindowSplitDirection(); }},
     {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
     {"ToggleActiveWindowFloating", [](const std::string &Arguments){ ToggleActiveWindowFloating(); }},
+    {"MoveFloatingWindow", [](const std::string &Arguments) { if (Arguments == "Left") {MoveFloatingWindow(LEFT); } else if (Arguments == "Right") { MoveFloatingWindow(RIGHT); } else if (Arguments == "Up") { MoveFloatingWindow(UP); } else if (Arguments == "Down") {MoveFloatingWindow(DOWN); }}},
 };
 
 void OnKeyPress(const xcb_generic_event_t* NextEvent) {
