@@ -447,6 +447,10 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
         UpdateWindowToCurrentSplits(NewContainer);
         xcb_map_window(WM.Connection, WindowToMap);
         xcb_flush(WM.Connection);
+
+        for (auto Floater: ActiveWorkspace->FloatingContainers) {
+            SendWindowToFront(Floater->Value->Window);
+        }
         return;
     }
 
