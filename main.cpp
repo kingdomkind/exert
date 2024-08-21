@@ -596,6 +596,26 @@ void AssignFreeWorkspaceToMonitor(std::shared_ptr<Monitor> Monitor) {
     << " (Should be same as " << Monitor->ActiveWorkspace << ")" << std::endl;
 }
 
+void FocusContainer(std::shared_ptr<Container> ContainerToFocus) {
+    if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Value->Floating == true) {
+                xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
+            } else {
+                xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveTiledWindowBorderColour);
+            }
+        }
+        std::cout << "Setting window focus to: " << ContainerToFocus->Value->Window << std::endl;
+        xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, ContainerToFocus->Value->Window, XCB_CURRENT_TIME);
+        WM.FocusedContainer = ContainerToFocus;
+        if (WM.FocusedContainer->Value->Floating == true) {
+            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.ActiveFloatingWindowBorderColour);
+        } else {
+            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.ActiveTiledWindowBorderColour);
+        }
+    xcb_flush(WM.Connection);
+    std::cout << "Finished setting focus" << std::endl;
+}
+
 // ! COMMANDS
 void MoveFloatingWindow(WindowSegment Direction) {
     if (WM.FocusedContainer != nullptr) {
@@ -623,8 +643,7 @@ void ToggleActiveWindowFloating() {
         RemovalContainer->Value->Position = {0.25f, 0.25f};
         RemovalContainer->Value->Size = {0.5f, 0.5f};
         WM.Workspaces[Workspace]->FloatingContainers.insert(RemovalContainer);
-        std::cout << "Focused Window: " << WM.FocusedContainer << std::endl;
-        if (WM.FocusedContainer == nullptr) { std::cout << "Window moved to floating still focused, set to focused"; WM.FocusedContainer = RemovalContainer; } else { std::cout << "Exists and is " << WM.FocusedContainer << std::endl; }
+        if (WM.FocusedContainer == nullptr) { FocusContainer(RemovalContainer); }
         UpdateWindowToCurrentSplits(RemovalContainer);
     }
 }
@@ -786,27 +805,7 @@ void ToggleFullscreen() {
 // ! EVENT LOOP FUNCTIONS
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
-    if (Event->event != 0) {
-        if (WM.FocusedContainer != nullptr) {
-            if (WM.FocusedContainer->Value->Floating == true) {
-                xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
-            } else {
-                xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveTiledWindowBorderColour);
-            }
-        }
-        std::cout << "Setting window focus to: " << Event->event << std::endl;
-        xcb_set_input_focus(WM.Connection, XCB_INPUT_FOCUS_POINTER_ROOT, Event->event, XCB_CURRENT_TIME);
-        WM.FocusedContainer = GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->event)->Container;
-        if (WM.FocusedContainer->Value->Floating == true) {
-            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.ActiveFloatingWindowBorderColour);
-        } else {
-            xcb_change_window_attributes(WM.Connection, WM.FocusedContainer->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.ActiveTiledWindowBorderColour);
-        }
-        xcb_flush(WM.Connection);
-    } else {
-        std::cout << "Did not set focus to 0 (is it root?)" << std::endl;
-    }
-    std::cout << "Finished setting focus" << std::endl;
+    FocusContainer(GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->event)->Container);
 }
 
 void OnMapRequest(const xcb_generic_event_t* NextEvent) {
