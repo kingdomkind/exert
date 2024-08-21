@@ -1,6 +1,6 @@
 #pragma once
 #include "shared.h"
-
+#include <xcb/xproto.h>
 static Runtime Runtime = {
     
     //* Settings
@@ -24,7 +24,11 @@ static Runtime Runtime = {
         {XK_Left, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Left"}},
         {XK_Right, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Right"}},
         {XK_Up, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Up"}},
-        {XK_Down, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}},
+        {XK_Down, {XCB_MOD_MASK_4, "exert-command ResizeActiveWindow Down"}}, 
+        {XK_Left, {XCB_MOD_MASK_SHIFT, "exert-command MoveFloatingWindow Left"}},
+        {XK_Right, {XCB_MOD_MASK_SHIFT, "exert-command MoveFloatingWindow Right"}},
+        {XK_Up, {XCB_MOD_MASK_SHIFT, "exert-command MoveFloatingWindow Up"}},
+        {XK_Down, {XCB_MOD_MASK_SHIFT, "exert-command MoveFloatingWindow Down"}},
         {XK_x, {XCB_MOD_MASK_4, "exert-command MoveActiveWindow"}},
         {XK_l, {XCB_MOD_MASK_4, "exert-command ChangeActiveWindowSplitDirection"}},
         {XK_k, {XCB_MOD_MASK_4, "exert-command SwapActiveWindowSides"}},
