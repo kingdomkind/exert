@@ -507,6 +507,10 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
 
     xcb_map_window(WM.Connection, WindowToMap);
     xcb_flush(WM.Connection);
+
+    for (auto Floater: ActiveWorkspace->FloatingContainers) {
+        SendWindowToFront(Floater->Value->Window);
+    }
 }
 
 void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace) {
@@ -640,27 +644,7 @@ void ToggleActiveWindowFloating() {
     if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
         std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
         int Workspace = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
-        RemoveContainerFromWM(WM.FocusedContainer, Workspace); /*
-        RemovalContainer->Parent = nullptr;
-        RemovalContainer->Left = nullptr;
-        RemovalContainer->Right = nullptr;
-        RemovalContainer->Value->Floating = true;
-        RemovalContainer->Value->Position = {0.25f, 0.25f};
-        RemovalContainer->Value->Size = {0.5f, 0.5f};
-        WM.Workspaces[Workspace]->FloatingContainers.insert(RemovalContainer);
-        int32_t Val = 1;
-
-        xcb_change_property(WM.Connection,
-                    XCB_PROP_MODE_REPLACE,
-                    RemovalContainer->Value->Window,
-                    GetAtom("FLOATING"),
-                    XCB_ATOM_CARDINAL,  // type of the property (CARDINAL means unsigned integer)
-                    32,  // format (32-bit integer)
-                    1,   // number of items in the data
-                    &Val);  // pointer to the data
-
-        if (WM.FocusedContainer == nullptr) { FocusContainer(RemovalContainer); }
-        UpdateWindowToCurrentSplits(RemovalContainer);*/
+        RemoveContainerFromWM(WM.FocusedContainer, Workspace);
         MapWindowToWM(RemovalContainer->Value->Window, true);
         if (WM.FocusedContainer == nullptr) { FocusContainer(GetWorkspaceAndContainerFromWindow_PossibleNullptr(RemovalContainer->Value->Window)->Container); }
     }
