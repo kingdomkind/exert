@@ -403,7 +403,7 @@ void UpdateWindowSplitsRecursively(std::shared_ptr<Container> BaseContainer) {
     }
 }
 
-void MapWindowToWM(unsigned int WindowToMap) {
+void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
     std::shared_ptr<Window> NewWindow = std::make_shared<Window>();
     NewWindow->Window = WindowToMap;
     std::shared_ptr<Container> NewContainer = std::make_shared<Container>();
@@ -411,7 +411,6 @@ void MapWindowToWM(unsigned int WindowToMap) {
     NewContainer->Parent = nullptr;
     NewContainer->Value = NewWindow;
     std::shared_ptr<Workspace> ActiveWorkspace = WM.Workspaces[GetActiveWorkspaceEnsureValid(GetActiveMonitor())];
-    bool MakeFloating = false;
 
     // Check if window is a popup or similar, if so map it to the center of the current monitor
     xcb_get_property_reply_t* WindowTypeReply = xcb_get_property_reply(WM.Connection, xcb_get_property(WM.Connection, 0, WindowToMap, WM.ProtocolsContainer.NetWmWindowType, XCB_ATOM_ATOM, 0, 32), nullptr);
@@ -635,7 +634,7 @@ void ToggleActiveWindowFloating() {
     if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
         std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
         int Workspace = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
-        RemoveContainerFromWM(WM.FocusedContainer, Workspace);
+        RemoveContainerFromWM(WM.FocusedContainer, Workspace); /*
         RemovalContainer->Parent = nullptr;
         RemovalContainer->Left = nullptr;
         RemovalContainer->Right = nullptr;
@@ -655,7 +654,8 @@ void ToggleActiveWindowFloating() {
                     &Val);  // pointer to the data
 
         if (WM.FocusedContainer == nullptr) { FocusContainer(RemovalContainer); }
-        UpdateWindowToCurrentSplits(RemovalContainer);
+        UpdateWindowToCurrentSplits(RemovalContainer);*/
+        MapWindowToWM(RemovalContainer->Value->Window, true);
     }
 }
 
