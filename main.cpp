@@ -440,6 +440,10 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
         uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
         xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
         xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
+
+        int Value = 1;
+        xcb_change_property(WM.Connection, XCB_PROP_MODE_REPLACE, WindowToMap, GetAtom("FLOATING"), XCB_ATOM_CARDINAL, 32, 1, &Value);
+
         UpdateWindowToCurrentSplits(NewContainer);
         xcb_map_window(WM.Connection, WindowToMap);
         xcb_flush(WM.Connection);
@@ -494,6 +498,8 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
     uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
     xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
     xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveTiledWindowBorderColour);
+    int Value = 0;
+    xcb_change_property(WM.Connection, XCB_PROP_MODE_REPLACE, WindowToMap, GetAtom("FLOATING"), XCB_ATOM_CARDINAL, 32, 1, &Value);
     UpdateWindowToCurrentSplits(NewContainer);
     if (FullscreenRefreshNeeded == true) { UpdateWindowToCurrentSplits(WM.FocusedContainer); SendWindowToFront(WM.FocusedContainer->Value->Window); } // We map the fullscreened window after so it appears ontop
     std::cout << "ADDED! " << WindowToMap << std::endl;
