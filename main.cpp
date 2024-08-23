@@ -428,7 +428,7 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
         }
     }
 
-    if (WM.FocusedContainer != nullptr) {
+    if (WM.FocusedContainer != nullptr && ActiveWorkspace->RootContainer == nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) {
             MakeFloating = true;
         }
@@ -451,8 +451,9 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
         xcb_map_window(WM.Connection, WindowToMap);
         xcb_flush(WM.Connection);
 
-        for (auto Floater = ActiveWorkspace->FloatingContainers.rbegin(); Floater != ActiveWorkspace->FloatingContainers.rend(); Floater++) {
-            SendWindowToFront(Floater->get()->Value->Window);
+        //for (auto Iterator = ActiveWorkspace->FloatingContainers.rbegin(); Iterator != ActiveWorkspace->FloatingContainers.rend(); Iterator++) {
+        for (auto Floater: ActiveWorkspace->FloatingContainers) {
+            SendWindowToFront(Floater->Value->Window);
         }
         return;
     }
