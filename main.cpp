@@ -428,7 +428,7 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
         }
     }
 
-    if (WM.FocusedContainer != nullptr && ActiveWorkspace->RootContainer == nullptr) {
+    if (WM.FocusedContainer != nullptr && ActiveWorkspace->RootContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) {
             MakeFloating = true;
         }
