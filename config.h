@@ -4,6 +4,7 @@
 static Runtime Runtime = {
     
     //* Settings
+    ///*
     {
         0, // MonitorPadding
         0, // WindowPadding
@@ -13,8 +14,19 @@ static Runtime Runtime = {
         0xff0000, // InActiveTiledWindowBorderColour
         0x0000ff, // ActiveFloatingWindowBorderColour
         0xff0000, //InActiveFloatingWindowBorderColour
+    }, //*/
+    /*
+    {
+        20, // MonitorPadding
+        10, // WindowPadding
+        3, // TiledWindowBorderSize
+        3, // FloatingWindowBorderSize
+        0x0000ff, // ActiveTiledWindowBorderColour
+        0xff0000, // InActiveTiledWindowBorderColour
+        0x0000ff, // ActiveFloatingWindowBorderColour
+        0xff0000, //InActiveFloatingWindowBorderColour
     },
-
+    */
     // * KEYBINDS
     {
         // WM
