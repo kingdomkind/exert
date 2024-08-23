@@ -77,7 +77,7 @@ struct Container {
 /* The struct that defines each workspace. Each workspace has a root container, which represents the root node of the heirarchy tree */
 struct Workspace {
     std::shared_ptr<Container> RootContainer = nullptr;
-    std::unordered_set<std::shared_ptr<Container>> FloatingContainers;
+    std::vector<std::shared_ptr<Container>> FloatingContainers;
     std::shared_ptr<Container> FullscreenContainer = nullptr; // If there is a window that is fullscreened on the workspace
 };
 
@@ -439,7 +439,7 @@ void MapWindowToWM(unsigned int WindowToMap, bool MakeFloating = false) {
         NewWindow->Floating = true;
         NewWindow->Position = {0.25f, 0.25f};
         NewWindow->Size = {0.5f, 0.5f};
-        ActiveWorkspace->FloatingContainers.insert(NewContainer);
+        ActiveWorkspace->FloatingContainers.push_back(NewContainer);
         uint32_t EventMasks[] = {XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE};
         xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_EVENT_MASK, &EventMasks);
         xcb_change_window_attributes(WM.Connection, WindowToMap, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour);
@@ -533,7 +533,7 @@ void RemoveContainerFromWM(std::shared_ptr<Container> ToBeRemoved, int Workspace
     }
 
     if (ToBeRemoved->Value->Floating == true) { // Floating Logic
-        WM.Workspaces[Workspace]->FloatingContainers.erase(ToBeRemoved);
+        WM.Workspaces[Workspace]->FloatingContainers.erase(std::remove(WM.Workspaces[Workspace]->FloatingContainers.begin(), WM.Workspaces[Workspace]->FloatingContainers.end(), ToBeRemoved), WM.Workspaces[Workspace]->FloatingContainers.end());
         xcb_change_window_attributes(WM.Connection, ToBeRemoved->Value->Window, XCB_CW_BORDER_PIXEL, &Runtime.Settings.InActiveFloatingWindowBorderColour); // Incase the window is planned to be remapped later
         xcb_flush(WM.Connection);
 
