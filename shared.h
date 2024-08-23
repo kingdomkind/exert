@@ -6,6 +6,8 @@
 #include <map>
 #include <X11/keysym.h>
 
+#define MOUSE_PRIMARY_BUTTON 1
+
 /* The letter is the key, keybind struct is intended to be used in a multimap */
 struct Keybind {
     unsigned int Modifier;
@@ -27,6 +29,7 @@ struct WMSettings {
 struct Runtime {
     WMSettings Settings; // Settings for WM
     std::multimap<unsigned int, struct Keybind> Keybinds; // Key is the letter / number / whatever associated with the keybind
+    std::multimap<unsigned int, struct Keybind> Mousebinds;
     std::unordered_set<std::string> Monitors; // Settings for monitors
     std::multimap<std::string, std::string> Exports; // Environment Variables
     std::unordered_set<std::string> StartupCommands; // Commands to run at boot

@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
@@ -900,7 +899,7 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 /* MAIN FUNCTION CALLS */
 void StartupWM() {
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, (void*)&Masks); std::cout << "Changed checked window attributes" << std::endl;
+    xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, &Masks); std::cout << "Changed checked window attributes" << std::endl;
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {

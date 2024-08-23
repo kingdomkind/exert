@@ -71,6 +71,11 @@ static Runtime Runtime = {
         {XK_9, {XCB_MOD_MASK_4, "exert-command SetFocusedMonitorToWorkspace 8"}},
     },
 
+    // * MOUSEBINDS
+    {
+        {MOUSE_PRIMARY_BUTTON, {XCB_MOD_MASK_4, "exert-command MoveFloatingWindow"}},
+    },
+
     // * MONITOR SETTINGS
     {
         "xrandr --output DP-4 --mode 2560x1080 --rate 74.99 --right-of DP-2",
