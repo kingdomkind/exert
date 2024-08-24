@@ -6,7 +6,7 @@
 #include <map>
 #include <X11/keysym.h>
 
-#define MOUSE_PRIMARY_BUTTON 1
+#define MOUSE_BUTTON_1 1
 
 /* The letter is the key, keybind struct is intended to be used in a multimap */
 struct Keybind {

@@ -73,7 +73,7 @@ static Runtime Runtime = {
 
     // * MOUSEBINDS
     {
-        {MOUSE_PRIMARY_BUTTON, {XCB_MOD_MASK_4, "exert-command DragFloatingWindow"}},
+        {MOUSE_BUTTON_1, {XCB_MOD_MASK_4, "exert-command DragFloatingWindow"}},
     },
 
     // * MONITOR SETTINGS

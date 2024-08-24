@@ -939,7 +939,7 @@ void StartupWM() {
         xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
     for (const auto &Pair : Runtime.Mousebinds) {
-        xcb_grab_button(WM.Connection, 0, WM.Screen->root, XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, WM.Screen->root, XCB_NONE, Pair.first, XCB_MOD_MASK_ANY);
+        xcb_grab_button(WM.Connection, 0, WM.Screen->root, XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, WM.Screen->root, XCB_NONE, Pair.first, Pair.second.Modifier);
     }
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
