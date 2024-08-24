@@ -120,6 +120,9 @@ const float RESIZE_INCREMEMNT = 0.01;
 
 static WM WM;
 
+static std::shared_ptr<Container> DraggedWindow = nullptr;
+static Coordinate InitialDraggingPosition;
+
 // ! UTILITY FUNCTIONS
 xcb_atom_t GetAtom(std::string AtomName) {
     xcb_intern_atom_reply_t* Atom = xcb_intern_atom_reply(WM.Connection, xcb_intern_atom(WM.Connection, 0, strlen(AtomName.c_str()), AtomName.c_str()), nullptr);
@@ -633,6 +636,20 @@ void FocusContainer(std::shared_ptr<Container> ContainerToFocus) {
 }
 
 // ! COMMANDS
+void DragFloatingWindow() {
+    if (DraggedWindow == nullptr) {
+        if (WM.FocusedContainer->Value->Floating == true) {
+            xcb_get_geometry_reply_t* Geometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
+            DraggedWindow = WM.FocusedContainer;
+            Coordinate MousePosition = GetCursorPosition();
+            InitialDraggingPosition.X = MousePosition.X - Geometry->x;
+            InitialDraggingPosition.Y = MousePosition.Y - Geometry->y;
+        }
+    } else {
+        DraggedWindow = nullptr;
+    }
+}
+
 void MoveFloatingWindow(WindowSegment Direction) {
     if (WM.FocusedContainer != nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) {
@@ -812,6 +829,20 @@ void ToggleFullscreen() {
 }
 
 // ! EVENT LOOP FUNCTIONS
+void OnMotionNotify(xcb_generic_event_t *ev) {
+    if (DraggedWindow != nullptr) {
+        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *)ev;
+
+        uint32_t values[2];
+        values[0] = e->root_x - InitialDraggingPosition.X;
+        values[1] = e->root_y - InitialDraggingPosition.Y;
+
+        xcb_configure_window(WM.Connection, DraggedWindow->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
+        xcb_flush(WM.Connection);
+    }
+}
+
+
 void OnEnterNotify(const xcb_generic_event_t* NextEvent) {
     xcb_enter_notify_event_t* Event = (xcb_enter_notify_event_t*) NextEvent;
     FocusContainer(GetWorkspaceAndContainerFromWindow_PossibleNullptr(Event->event)->Container);
@@ -863,6 +894,7 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
     {"ToggleActiveWindowFloating", [](const std::string &Arguments){ ToggleActiveWindowFloating(); }},
     {"MoveFloatingWindow", [](const std::string &Arguments) { if (Arguments == "Left") {MoveFloatingWindow(LEFT); } else if (Arguments == "Right") { MoveFloatingWindow(RIGHT); } else if (Arguments == "Up") { MoveFloatingWindow(UP); } else if (Arguments == "Down") {MoveFloatingWindow(DOWN); }}},
+    {"DragFloatingWindow", [](const std::string &Arguments){ DragFloatingWindow(); }}
 };
 
 void OnBind(const xcb_generic_event_t* NextEvent, std::multimap<unsigned int, struct Keybind> Targetbinds) {
