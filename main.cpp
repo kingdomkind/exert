@@ -1013,6 +1013,7 @@ void RunEventLoop() {
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
             case XCB_CLIENT_MESSAGE: { HandleFullScreenRequest(NextEvent); break; }
+            case XCB_MOTION_NOTIFY: { OnMotionNotify(NextEvent); break; }
             // default: { std::cout << "Ignored Event: " << (int)NextEvent->response_type << std::endl; break; }
         }
     }
