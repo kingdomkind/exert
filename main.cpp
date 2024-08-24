@@ -637,6 +637,7 @@ void FocusContainer(std::shared_ptr<Container> ContainerToFocus) {
 
 // ! COMMANDS
 void DragFloatingWindow() {
+    std::cout << "Hit" << std::endl;
     if (DraggedWindow == nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) {
             xcb_get_geometry_reply_t* Geometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
