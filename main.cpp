@@ -637,15 +637,13 @@ void FocusContainer(std::shared_ptr<Container> ContainerToFocus) {
 
 // ! COMMANDS
 void DragFloatingWindow() {
-    std::cout << "Hit" << std::endl;
     if (DraggedWindow == nullptr) {
         if (WM.FocusedContainer->Value->Floating == true) {
             xcb_get_geometry_reply_t* Geometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
             DraggedWindow = WM.FocusedContainer;
             Coordinate MousePosition = GetCursorPosition();
-            std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(DraggedWindow->Value->Window)->Workspace);
-            InitialDraggingPosition.X = (MousePosition.X - Geometry->x) / Monitor->Width;
-            InitialDraggingPosition.Y = (MousePosition.Y - Geometry->y) / Monitor->Height;
+            InitialDraggingPosition.X = (MousePosition.X - Geometry->x);
+            InitialDraggingPosition.Y = (MousePosition.Y - Geometry->y);
         }
     } else {
         DraggedWindow = nullptr;
@@ -831,19 +829,15 @@ void ToggleFullscreen() {
 }
 
 // ! EVENT LOOP FUNCTIONS
-void OnMotionNotify(xcb_generic_event_t *ev) {
+void OnMotionNotify(xcb_generic_event_t* NextEvent) {
     if (DraggedWindow != nullptr) {
-        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *)ev;
-
-        uint32_t values[2];
-        values[0] = e->root_x - InitialDraggingPosition.X;
-        values[1] = e->root_y - InitialDraggingPosition.Y;
-
-        DraggedWindow->Value->Position = { ((float)e->root_x / GetActiveMonitor()->Width) - InitialDraggingPosition.X, ((float)e->root_y / GetActiveMonitor()->Height) - InitialDraggingPosition.Y };
-        UpdateWindowToCurrentSplits(DraggedWindow);
-
-        //xcb_configure_window(WM.Connection, DraggedWindow->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
-        //xcb_flush(WM.Connection);
+        xcb_motion_notify_event_t* Event = (xcb_motion_notify_event_t*)NextEvent;
+        std::shared_ptr<Monitor> Monitor = GetActiveMonitor();
+        uint32_t Values[2];
+        Values[0] = std::clamp(Event->root_x - InitialDraggingPosition.X, (float)Monitor->X, (float)(Monitor->X + Monitor->Width));
+        Values[1] = std::clamp(Event->root_y - InitialDraggingPosition.Y, (float)Monitor->Y, (float)(Monitor->Y + Monitor->Height));
+        xcb_configure_window(WM.Connection, DraggedWindow->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, Values);
+        xcb_flush(WM.Connection);
     }
 }
 
