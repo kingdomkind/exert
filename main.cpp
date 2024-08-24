@@ -642,8 +642,9 @@ void DragFloatingWindow() {
             xcb_get_geometry_reply_t* Geometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
             DraggedWindow = WM.FocusedContainer;
             Coordinate MousePosition = GetCursorPosition();
-            InitialDraggingPosition.X = MousePosition.X - Geometry->x;
-            InitialDraggingPosition.Y = MousePosition.Y - Geometry->y;
+            std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(DraggedWindow->Value->Window)->Workspace);
+            InitialDraggingPosition.X = (MousePosition.X - Geometry->x) / Monitor->Width;
+            InitialDraggingPosition.Y = (MousePosition.Y - Geometry->y) / Monitor->Height;
         }
     } else {
         DraggedWindow = nullptr;
@@ -837,8 +838,11 @@ void OnMotionNotify(xcb_generic_event_t *ev) {
         values[0] = e->root_x - InitialDraggingPosition.X;
         values[1] = e->root_y - InitialDraggingPosition.Y;
 
-        xcb_configure_window(WM.Connection, DraggedWindow->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
-        xcb_flush(WM.Connection);
+        DraggedWindow->Value->Position = { ((float)e->root_x / GetActiveMonitor()->Width) - InitialDraggingPosition.X, ((float)e->root_y / GetActiveMonitor()->Height) - InitialDraggingPosition.Y };
+        UpdateWindowToCurrentSplits(DraggedWindow);
+
+        //xcb_configure_window(WM.Connection, DraggedWindow->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
+        //xcb_flush(WM.Connection);
     }
 }
 
