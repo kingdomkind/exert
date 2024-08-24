@@ -865,10 +865,10 @@ std::unordered_map<std::string, std::function<void(const std::string &Arguments)
     {"MoveFloatingWindow", [](const std::string &Arguments) { if (Arguments == "Left") {MoveFloatingWindow(LEFT); } else if (Arguments == "Right") { MoveFloatingWindow(RIGHT); } else if (Arguments == "Up") { MoveFloatingWindow(UP); } else if (Arguments == "Down") {MoveFloatingWindow(DOWN); }}},
 };
 
-void OnKeyPress(const xcb_generic_event_t* NextEvent) {
+void OnBind(const xcb_generic_event_t* NextEvent, std::multimap<unsigned int, struct Keybind> Targetbinds) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
-    auto TargetRange = Runtime.Keybinds.equal_range(Keycode);
+    auto TargetRange = Targetbinds.equal_range(Keycode);
     if (TargetRange.first != TargetRange.second) {
         for (auto Pair = TargetRange.first; Pair != TargetRange.second; Pair++) {
             if (((Event->state & Pair->second.Modifier) == Event->state) && Keycode == Pair->first) {
@@ -900,12 +900,15 @@ void OnKeyPress(const xcb_generic_event_t* NextEvent) {
 void StartupWM() {
     const uint32_t Masks = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_STRUCTURE_NOTIFY |  XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes_checked(WM.Connection, WM.Screen->root, XCB_CW_EVENT_MASK, &Masks); std::cout << "Changed checked window attributes" << std::endl;
+    xcb_ungrab_button(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY);
     xcb_ungrab_key(WM.Connection, XCB_GRAB_ANY, WM.Screen->root, XCB_MOD_MASK_ANY); std::cout << "Reset all grabbed keys" << std::endl;
 
     for (const auto &Pair : Runtime.Keybinds) {
         xcb_grab_key(WM.Connection, 0, WM.Screen->root, Pair.second.Modifier, Pair.first, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
-
+    for (const auto &Pair : Runtime.Mousebinds) {
+        xcb_grab_button(WM.Connection, 0, WM.Screen->root, XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, WM.Screen->root, XCB_NONE, Pair.first, XCB_MOD_MASK_ANY);
+    }
     xcb_flush(WM.Connection); std::cout << "Starting up the WM" << std::endl;
 }
 
@@ -971,7 +974,7 @@ void RunEventLoop() {
         // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            case XCB_KEY_PRESS: { OnKeyPress(NextEvent); break; }
+            case XCB_KEY_PRESS: { OnBind(NextEvent, Runtime.Keybinds); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }
