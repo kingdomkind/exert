@@ -18,6 +18,7 @@ Exert is my own X11, no-frills (XCB) window manager. All the code is in 1 file, 
 - Automatic Tiling
 - Window Resizing
 - Window Moving
+- Floating Windows & Their Jazz
 - Swap Split Direction
 - Full-screening Windows
 - Keybinds
