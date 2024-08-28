@@ -120,6 +120,7 @@ const float RESIZE_INCREMEMNT = 0.01;
 
 static WM WM;
 
+static bool Repositioning;
 static std::shared_ptr<Container> DraggedWindow = nullptr;
 static Coordinate InitialDraggingPosition;
 
@@ -312,9 +313,12 @@ std::shared_ptr<Monitor> GetActiveMonitor() {
     exit(EXIT_FAILURE);
 }
 
-void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer) {
+void UpdateWindowToCurrentSplits(std::shared_ptr<Container> TargetContainer, std::shared_ptr<Monitor> Monitor = nullptr) {
     std::cout << "Updating to current splits: " << TargetContainer->Parent << " " << TargetContainer->Left << " " << TargetContainer->Right << " " << TargetContainer->Value->Window << std::endl;
-    std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(TargetContainer->Value->Window)->Workspace);
+    
+    if (Monitor == nullptr) { // No monitor has been supplied, we have to calculate
+        Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(TargetContainer->Value->Window)->Workspace);
+    }
 
     if (Monitor == nullptr) { // Workspace is off screen
         std::cout << "Monitor is nullptr, and so is offscreen" << std::endl;
@@ -636,14 +640,20 @@ void FocusContainer(std::shared_ptr<Container> ContainerToFocus) {
 }
 
 // ! COMMANDS
-void DragFloatingWindow() {
+void ChangeFloatingWindow(bool Position) {
     if (DraggedWindow == nullptr) {
-        if (WM.FocusedContainer->Value->Floating == true) {
-            xcb_get_geometry_reply_t* Geometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
-            DraggedWindow = WM.FocusedContainer;
-            Coordinate MousePosition = GetCursorPosition();
-            InitialDraggingPosition.X = (MousePosition.X - Geometry->x);
-            InitialDraggingPosition.Y = (MousePosition.Y - Geometry->y);
+        if (WM.FocusedContainer != nullptr) {
+            if (WM.FocusedContainer->Value->Floating == true) {
+                xcb_get_geometry_reply_t* Geometry = xcb_get_geometry_reply(WM.Connection, xcb_get_geometry(WM.Connection, WM.FocusedContainer->Value->Window), NULL);
+                DraggedWindow = WM.FocusedContainer;
+                Coordinate MousePosition = GetCursorPosition();
+                std::shared_ptr<Monitor> Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(DraggedWindow->Value->Window)->Workspace);
+                InitialDraggingPosition.X = (MousePosition.X - Geometry->x) / Monitor->Width;
+                InitialDraggingPosition.Y = (MousePosition.Y - Geometry->y) / Monitor->Height;
+                std::cout << "Initial Drag Pos : " << InitialDraggingPosition.X << " " << InitialDraggingPosition.Y << std::endl; 
+
+                Repositioning = Position;
+            }
         }
     } else {
         DraggedWindow = nullptr;
@@ -665,12 +675,14 @@ void MoveFloatingWindow(WindowSegment Direction) {
 }
 
 void ToggleActiveWindowFloating() {
-    if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
-        std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
-        int Workspace = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
-        RemoveContainerFromWM(WM.FocusedContainer, Workspace);
-        MapWindowToWM(RemovalContainer->Value->Window, true);
-        if (WM.FocusedContainer == nullptr) { FocusContainer(GetWorkspaceAndContainerFromWindow_PossibleNullptr(RemovalContainer->Value->Window)->Container); }
+    if (WM.FocusedContainer != nullptr) {
+        if (WM.FocusedContainer->Value->Floating == false) { // Tiling to Floating Logic
+            std::shared_ptr<Container> RemovalContainer = WM.FocusedContainer;
+            int Workspace = GetWorkspaceAndContainerFromWindow_PossibleNullptr(WM.FocusedContainer->Value->Window)->Workspace;
+            RemoveContainerFromWM(WM.FocusedContainer, Workspace);
+            MapWindowToWM(RemovalContainer->Value->Window, true);
+            if (WM.FocusedContainer == nullptr) { FocusContainer(GetWorkspaceAndContainerFromWindow_PossibleNullptr(RemovalContainer->Value->Window)->Container); }
+        }
     }
 }
 
@@ -830,14 +842,24 @@ void ToggleFullscreen() {
 
 // ! EVENT LOOP FUNCTIONS
 void OnMotionNotify(xcb_generic_event_t* NextEvent) {
+    static std::shared_ptr<Monitor> Monitor = nullptr;
     if (DraggedWindow != nullptr) {
+        if (Monitor == nullptr) {
+            Monitor = GetMonitorFromWorkspace_PossibleNullptr(GetWorkspaceAndContainerFromWindow_PossibleNullptr(DraggedWindow->Value->Window)->Workspace);
+        }
         xcb_motion_notify_event_t* Event = (xcb_motion_notify_event_t*)NextEvent;
-        std::shared_ptr<Monitor> Monitor = GetActiveMonitor();
-        uint32_t Values[2];
-        Values[0] = std::clamp(Event->root_x - InitialDraggingPosition.X, (float)Monitor->X, (float)(Monitor->X + Monitor->Width));
-        Values[1] = std::clamp(Event->root_y - InitialDraggingPosition.Y, (float)Monitor->Y, (float)(Monitor->Y + Monitor->Height));
-        xcb_configure_window(WM.Connection, DraggedWindow->Value->Window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, Values);
-        xcb_flush(WM.Connection);
+        if (Repositioning) {
+            DraggedWindow->Value->Position.X = std::clamp((float)(Event->root_x - Monitor->X) / Monitor->Width - InitialDraggingPosition.X, 0.0f, 1.0f - DraggedWindow->Value->Size.X);
+            DraggedWindow->Value->Position.Y = std::clamp((float)(Event->root_y - Monitor->Y) / Monitor->Height - InitialDraggingPosition.Y, 0.0f, 1.0f - DraggedWindow->Value->Size.Y);
+        } else {
+            float NewWidth = DraggedWindow->Value->Position.X + ((float)(Event->root_x - Monitor->X) / Monitor->Width - InitialDraggingPosition.X);
+            float NewHeight = DraggedWindow->Value->Position.Y + ((float)(Event->root_y - Monitor->Y) / Monitor->Height - InitialDraggingPosition.Y);
+            DraggedWindow->Value->Size.X = std::clamp(NewWidth, 0.05f, 1.0f - DraggedWindow->Value->Position.X);
+            DraggedWindow->Value->Size.Y = std::clamp(NewHeight, 0.05f, 1.0f - DraggedWindow->Value->Position.Y); 
+        }
+        UpdateWindowToCurrentSplits(DraggedWindow, Monitor);
+    } else {
+        if (Monitor != nullptr) { Monitor = nullptr; std::cout << "Recalc Monitor" << std::endl; }
     }
 }
 
@@ -882,21 +904,22 @@ void HandleFullScreenRequest(xcb_generic_event_t* NextEvent) {
     }
 }
 
-std::unordered_map<std::string, std::function<void(const std::string &Arguments)>> InternalCommand = { // Only used in on keypress hence why it is here
-    {"KillActive", [](const std::string &Arguments) { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
-    {"ExitWM", [](const std::string &Arguments) { ExitWM(); }},
-    {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
-    {"ToggleFullscreen", [](const std::string &Arguments){ ToggleFullscreen(); }},
-    {"ResizeActiveWindow", [](const std::string &Arguments) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
-    {"MoveActiveWindow", [](const std::string &Arguments){ MoveActiveWindow(); }},
-    {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments){ ChangeActiveWindowSplitDirection(); }},
-    {"SwapActiveWindowSides", [](const std::string &Arguments){ SwapActiveWindowSides(); }},
-    {"ToggleActiveWindowFloating", [](const std::string &Arguments){ ToggleActiveWindowFloating(); }},
-    {"MoveFloatingWindow", [](const std::string &Arguments) { if (Arguments == "Left") {MoveFloatingWindow(LEFT); } else if (Arguments == "Right") { MoveFloatingWindow(RIGHT); } else if (Arguments == "Up") { MoveFloatingWindow(UP); } else if (Arguments == "Down") {MoveFloatingWindow(DOWN); }}},
-    {"DragFloatingWindow", [](const std::string &Arguments){ DragFloatingWindow(); }}
+std::unordered_map<std::string, std::function<void(const std::string &Arguments, int Source)>> InternalCommand = { // Only used in on keypress hence why it is here
+    {"KillActive", [](const std::string &Arguments, int Source) { if (!(WM.FocusedContainer == nullptr)) { KillWindow(WM.FocusedContainer->Value->Window); } else { std::cerr << "Focused window does not exist, cannot kill it" << std::endl;}}},
+    {"ExitWM", [](const std::string &Arguments, int Source) { ExitWM(); }},
+    {"SetFocusedMonitorToWorkspace", [](const std::string &Arguments, int Source){ SetWorkspaceToMonitor(std::stoi(Arguments), GetActiveMonitor()); }},
+    {"ToggleFullscreen", [](const std::string &Arguments, int Source){ ToggleFullscreen(); }},
+    {"ResizeActiveWindow", [](const std::string &Arguments, int Source) { if (Arguments == "Left") {ResizeActiveWindow(LEFT); } else if (Arguments == "Right") { ResizeActiveWindow(RIGHT); } else if (Arguments == "Up") { ResizeActiveWindow(UP); } else if (Arguments == "Down") {ResizeActiveWindow(DOWN); }}},
+    {"MoveActiveWindow", [](const std::string &Arguments, int Source){ MoveActiveWindow(); }},
+    {"ChangeActiveWindowSplitDirection", [](const std::string &Arguments, int Source){ ChangeActiveWindowSplitDirection(); }},
+    {"SwapActiveWindowSides", [](const std::string &Arguments, int Source){ SwapActiveWindowSides(); }},
+    {"ToggleActiveWindowFloating", [](const std::string &Arguments, int Source){ ToggleActiveWindowFloating(); }},
+    {"MoveFloatingWindow", [](const std::string &Arguments, int Source) { if (Arguments == "Left") {MoveFloatingWindow(LEFT); } else if (Arguments == "Right") { MoveFloatingWindow(RIGHT); } else if (Arguments == "Up") { MoveFloatingWindow(UP); } else if (Arguments == "Down") {MoveFloatingWindow(DOWN); }}},
+    {"DragFloatingWindow", [](const std::string &Arguments, int Source){ ChangeFloatingWindow(true); }},
+    {"ResizeFloatingWindow", [](const std::string &Arguments, int Source){ ChangeFloatingWindow(false); }},
 };
 
-void OnBind(const xcb_generic_event_t* NextEvent, std::multimap<unsigned int, struct Keybind> Targetbinds) {
+void OnBind(const xcb_generic_event_t* NextEvent, std::multimap<unsigned int, struct Keybind> Targetbinds, int Source) {
     xcb_key_press_event_t* Event = (xcb_key_press_event_t*)NextEvent;
     xcb_keycode_t Keycode = Event->detail;
     auto TargetRange = Targetbinds.equal_range(Keycode);
@@ -913,7 +936,7 @@ void OnBind(const xcb_generic_event_t* NextEvent, std::multimap<unsigned int, st
                     auto Found = InternalCommand.find(CommandName);
                     if (Found != InternalCommand.end()) {
                         std::cout << "Executing Internal Command: " << CommandName << std::endl; 
-                        Found->second(Arguments);
+                        Found->second(Arguments, Source);
                     } else {
                         std::cerr << "No matching function to call for: " << CommandName << std::endl;
                     }
@@ -1005,9 +1028,9 @@ void RunEventLoop() {
         // std::cout << "Recieved Event: " << (int)NextEvent->response_type << std::endl;
         switch (NextEvent->response_type & ~0x80) {
             case XCB_MAP_REQUEST: { OnMapRequest(NextEvent); break; }
-            case XCB_KEY_PRESS: { OnBind(NextEvent, Runtime.Keybinds); break; }
-            case XCB_BUTTON_PRESS: { OnBind(NextEvent, Runtime.Mousebinds); break; }
-            case XCB_BUTTON_RELEASE: { OnBind(NextEvent, Runtime.Mousebinds); break; }
+            case XCB_KEY_PRESS: { OnBind(NextEvent, Runtime.Keybinds, XCB_KEY_PRESS); break; }
+            case XCB_BUTTON_PRESS: { OnBind(NextEvent, Runtime.Mousebinds, XCB_BUTTON_PRESS); break; }
+            //case XCB_BUTTON_RELEASE: { OnBind(NextEvent, Runtime.Mousebinds, XCB_BUTTON_RELEASE); break; }
             case XCB_UNMAP_NOTIFY: { OnUnMapNotify(NextEvent); break; }
             case XCB_DESTROY_NOTIFY: { OnDestroyNotify(NextEvent); break; }
             case XCB_ENTER_NOTIFY: { OnEnterNotify(NextEvent); break; }

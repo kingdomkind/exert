@@ -6,27 +6,28 @@ static Runtime Runtime = {
     //* Settings
     ///*
     {
-        0, // MonitorPadding
-        0, // WindowPadding
-        0, // TiledWindowBorderSize
-        3, // FloatingWindowBorderSize
-        0x0000ff, // ActiveTiledWindowBorderColour
-        0xff0000, // InActiveTiledWindowBorderColour
-        0x0000ff, // ActiveFloatingWindowBorderColour
-        0xff0000, //InActiveFloatingWindowBorderColour
+        .MonitorPadding = 0,
+        .WindowPadding = 0,
+        .TiledWindowBorderSize = 0,
+        .FloatingWindowBorderSize = 3,
+        .ActiveTiledWindowBorderColour = 0x0000ff,
+        .InActiveTiledWindowBorderColour = 0xff0000,
+        .ActiveFloatingWindowBorderColour = 0x0000ff,
+        .InActiveFloatingWindowBorderColour = 0xff0000,
     }, //*/
+
     /*
     {
-        20, // MonitorPadding
-        10, // WindowPadding
-        3, // TiledWindowBorderSize
-        3, // FloatingWindowBorderSize
-        0x0000ff, // ActiveTiledWindowBorderColour
-        0xff0000, // InActiveTiledWindowBorderColour
-        0x0000ff, // ActiveFloatingWindowBorderColour
-        0xff0000, //InActiveFloatingWindowBorderColour
-    },
-    */
+        .MonitorPadding = 20,
+        .WindowPadding = 10,
+        .TiledWindowBorderSize = 3,
+        .FloatingWindowBorderSize = 3,
+        .ActiveTiledWindowBorderColour = 0x0000ff,
+        .InActiveTiledWindowBorderColour = 0xff0000,
+        .ActiveFloatingWindowBorderColour = 0x0000ff,
+        .InActiveFloatingWindowBorderColour = 0xff0000,
+    }, */
+    
     // * KEYBINDS
     {
         // WM
@@ -73,7 +74,8 @@ static Runtime Runtime = {
 
     // * MOUSEBINDS
     {
-        {MOUSE_BUTTON_1, {XCB_MOD_MASK_4, "exert-command DragFloatingWindow"}},
+        {MOUSE_LEFT_CLICK, {XCB_MOD_MASK_4, "exert-command DragFloatingWindow"}},
+        {MOUSE_RIGHT_CLICK, {XCB_MOD_MASK_4, "exert-command ResizeFloatingWindow"}},
     },
 
     // * MONITOR SETTINGS

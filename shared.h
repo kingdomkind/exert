@@ -6,8 +6,9 @@
 #include <map>
 #include <X11/keysym.h>
 
-#define MOUSE_BUTTON_1 1
-#define MOUSE_BUTTON_2 2
+#define MOUSE_LEFT_CLICK 1
+#define MOUSE_SCROLL_WHEEL_CLICK 2
+#define MOUSE_RIGHT_CLICK 3
 
 
 /* The letter is the key, keybind struct is intended to be used in a multimap */
