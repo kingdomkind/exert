@@ -7,7 +7,7 @@
 ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   ╚═╝
 ```
 
-[Showcase](https://www.youtube.com/watch?v=ap2Y1Vo4BgA)
+[Showcase](https://odysee.com/@kingdomkind:6/exert-x11-window-manager%2C-showcase-2:6?r=BjZs22qVBre2MPQHiT3tGSANr7b15Fk8)
 
 **<============ Precursor ============>**
 
